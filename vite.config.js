@@ -11,20 +11,33 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Markdown rendering libs (grandes)
+          // Markdown rendering libs
           'markdown-renderer': ['marked', 'marked-highlight', 'marked-katex-extension'],
-          // Syntax highlighting
+          // Syntax highlighting (heavy)
           'syntax-highlighter': ['highlight.js'],
-          // Math rendering
+          // Math rendering (heavy)
           'math-renderer': ['katex'],
+          // Rich text editor (TipTap - heavy)
+          'rich-text-editor': [
+            '@tiptap/core',
+            '@tiptap/starter-kit',
+            '@tiptap/extension-placeholder',
+            '@tiptap/extension-bubble-menu'
+          ],
+          // Icons (Lucide)
+          'icons': ['lucide-svelte'],
+          // Database
+          'database': ['dexie'],
           // Svelte runtime
           'svelte-runtime': ['svelte', 'svelte/internal'],
         }
       }
     },
-    // Aumenta o limite do warning (opcional, mas agora está bem otimizado)
-    chunkSizeWarningLimit: 600,
-    // Minificação com esbuild (mais rápido e já vem com Vite)
+    // Limite do warning (500KB para chunks)
+    chunkSizeWarningLimit: 500,
+    // Minificação agressiva com esbuild
     minify: 'esbuild',
+    // Target moderno para menos polyfills
+    target: 'es2020',
   }
 })

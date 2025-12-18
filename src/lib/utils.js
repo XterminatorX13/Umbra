@@ -22,6 +22,18 @@ export function normalizeConversation(conv) {
     };
 }
 
+export function formatDate(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp * 1000); // timestamp is usually seconds in ChatGPT export
+    // If year is current year, show "DD/MM", else "DD/MM/YYYY"
+    const now = new Date();
+    return date.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+}
+
 export function getConvKey(conv) {
     const raw = conv.raw || {};
     const externalId = raw.id || null;

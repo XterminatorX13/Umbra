@@ -22,6 +22,10 @@
     Bot,
   } from "lucide-svelte";
   import BorderBeam from "./components/BorderBeam.svelte";
+  import RichTextEditor from "./components/RichTextEditor.svelte";
+  import SpotlightInput from "./components/SpotlightInput.svelte";
+  import EmptyState from "./components/EmptyState.svelte";
+  import ShineBorder from "./components/ShineBorder.svelte";
 
   export let conversation = null;
   export let meta = {};
@@ -54,21 +58,33 @@
     return markdownCache.get(key);
   }
 
-  // Clear cache when conversation changes
-  $: if (conversation) {
-    markdownCache.clear();
-    visibleCount = MESSAGES_PER_PAGE;
-    renderMessagesAsync();
+  // Track conversation ID to prevent re-renders of same conversation
+  let lastConversationId = null;
+
+  // Clear cache when conversation changes (only if it's a new conversation)
+  $: {
+    const currentId = conversation ? getConvKey(conversation) : null;
+    if (currentId && currentId !== lastConversationId) {
+      lastConversationId = currentId;
+      markdownCache.clear();
+      visibleCount = MESSAGES_PER_PAGE;
+      // Use setTimeout to break the reactive cycle
+      setTimeout(() => renderMessagesAsync(), 0);
+    }
   }
 
   // Async rendering with RAF - batched for better performance
   async function renderMessagesAsync() {
     if (!conversation?.messages) {
       renderedMessages = [];
+      isRendering = false;
       return;
     }
 
+    // Guard against concurrent renders
+    if (isRendering) return;
     isRendering = true;
+
     const toRender = conversation.messages.slice(-visibleCount);
 
     // Render in batches of 5 for smoother UI
@@ -223,149 +239,101 @@
 </script>
 
 {#if !conversation}
-  <div
-    style="position: relative; background: var(--bg-deep); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; align-items: center; justify-content: center; color: var(--color-text-secondary); flex: 1;"
-  >
-    <!-- Background glow effect -->
-    <div class="empty-state-glow"></div>
-
-    <!-- Floating icon with animation -->
-    <div class="floating-icon">
-      <MessageSquare size={48} color="var(--highlight)" />
-    </div>
-
-    <!-- Main content -->
-    <div
-      style="text-align: center; z-index: 1; animation: fadeInUp 0.6s ease-out;"
-    >
-      <h2
-        style="font-size: 24px; font-weight: 700; color: var(--highlight); margin-bottom: 12px; text-shadow: 0 0 30px rgba(157, 78, 221, 0.2);"
-      >
-        PKM ChatGPT
-      </h2>
-      <p
-        style="font-size: 15px; color: var(--color-text-primary); margin-bottom: 8px;"
-      >
-        Selecione uma conversa para começar
-      </p>
-      <p
-        style="font-size: 12px; opacity: 0.6; max-width: 280px; line-height: 1.5;"
-      >
-        Use ↑↓ para navegar, ou clique em uma conversa na sidebar
-      </p>
-    </div>
-
-    <!-- Keyboard hints -->
-    <div
-      style="margin-top: 40px; display: flex; gap: 16px; z-index: 1; animation: fadeInUp 0.8s ease-out;"
-    >
-      <div class="hint-card">
-        <div class="hint-icon"><Star size={18} /></div>
-        <div class="hint-text">Favoritos</div>
-        <div class="hint-label">Acesso rápido</div>
-      </div>
-      <div class="hint-card">
-        <div class="hint-icon"><Folder size={18} /></div>
-        <div class="hint-text">Pastas</div>
-        <div class="hint-label">Organizar</div>
-      </div>
-      <div class="hint-card">
-        <div class="hint-icon"><BarChart2 size={18} /></div>
-        <div class="hint-text">Command</div>
-        <div class="hint-label">Em breve</div>
-      </div>
-    </div>
-  </div>
+  <EmptyState />
 {:else}
   <div
     style="position: relative; background: var(--bg-deep); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; height: 100%; width: 100%;"
   >
-    <!-- Header -->
-    <div
-      style="padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--bg-panel); display: flex; justify-content: space-between; align-items: center;"
-    >
-      <div style="flex: 1; min-width: 0;">
-        <div
-          style="font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px;"
-        >
-          {conversation.title || "(Sem título)"}
-        </div>
-        <div
-          style="font-size: 11px; color: var(--color-text-secondary); display: flex; gap: 8px;"
-        >
-          <span style="display:flex; align-items:center; gap:4px;"
-            ><MessageSquare size={10} />
-            {conversation.messages.length} mensagens</span
+    <!-- Header with Shine Border -->
+    <ShineBorder duration={4} borderWidth={1}>
+      <div
+        style="padding: 16px 20px; background: var(--bg-panel); display: flex; justify-content: space-between; align-items: center;"
+      >
+        <div style="flex: 1; min-width: 0;">
+          <div
+            style="font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px;"
           >
-          <span>·</span>
-          <span>📅 {epochToString(conversation.createTime)}</span>
+            {conversation.title || "(Sem título)"}
+          </div>
+          <div
+            style="font-size: 11px; color: var(--color-text-secondary); display: flex; gap: 8px;"
+          >
+            <span style="display:flex; align-items:center; gap:4px;"
+              ><MessageSquare size={10} />
+              {conversation.messages.length} mensagens</span
+            >
+            <span>·</span>
+            <span>📅 {epochToString(conversation.createTime)}</span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <!-- Font size controls -->
+          <button
+            on:click={() => changeFontSize(-1)}
+            title="Diminuir fonte (Ctrl+-)"
+            class="icon-btn"><Type size={14} />-</button
+          >
+          <button
+            on:click={() => changeFontSize(1)}
+            title="Aumentar fonte (Ctrl++)"
+            class="icon-btn"><Type size={14} />+</button
+          >
+
+          <div
+            style="width: 1px; height: 20px; background: var(--border);"
+          ></div>
+
+          <!-- Copy -->
+          <button
+            on:click={copyConversation}
+            title="Copiar conversa (Ctrl+Shift+C)"
+            class="icon-btn"
+            style:color={copySuccess ? "var(--highlight)" : ""}
+          >
+            {#if copySuccess}✓{:else}<Copy size={16} />{/if}
+          </button>
+
+          <!-- Export -->
+          <button
+            on:click={exportConversation}
+            title="Exportar JSON"
+            class="icon-btn"
+          >
+            <Download size={16} />
+          </button>
+
+          <!-- Favorite -->
+          <button
+            on:click={toggleFav}
+            title="Favoritar"
+            class="fav-btn"
+            class:is-fav={meta.favorite}
+          >
+            <Star
+              size={20}
+              fill={meta.favorite ? "var(--highlight)" : "none"}
+              color={meta.favorite
+                ? "var(--highlight)"
+                : "var(--color-text-secondary)"}
+            />
+          </button>
+
+          <div
+            style="width: 1px; height: 20px; background: var(--border);"
+          ></div>
+
+          <!-- Sidebar Toggle -->
+          <button
+            on:click={() => (showSidebar = !showSidebar)}
+            title="Propriedades (B)"
+            class="toggle-btn"
+            class:active={showSidebar}
+          >
+            <Menu size={18} />
+          </button>
         </div>
       </div>
-      <div style="display: flex; gap: 8px; align-items: center;">
-        <!-- Font size controls -->
-        <button
-          on:click={() => changeFontSize(-1)}
-          title="Diminuir fonte (Ctrl+-)"
-          class="icon-btn"><Type size={14} />-</button
-        >
-        <button
-          on:click={() => changeFontSize(1)}
-          title="Aumentar fonte (Ctrl++)"
-          class="icon-btn"><Type size={14} />+</button
-        >
-
-        <div style="width: 1px; height: 20px; background: var(--border);"></div>
-
-        <!-- Copy -->
-        <button
-          on:click={copyConversation}
-          title="Copiar conversa (Ctrl+Shift+C)"
-          class="icon-btn"
-          style:color={copySuccess ? "var(--highlight)" : ""}
-        >
-          {#if copySuccess}✓{:else}<Copy size={16} />{/if}
-        </button>
-
-        <!-- Export -->
-        <button
-          on:click={exportConversation}
-          title="Exportar JSON"
-          class="icon-btn"
-        >
-          <Download size={16} />
-        </button>
-
-        <!-- Favorite -->
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div
-          on:click={toggleFav}
-          title="Favoritar"
-          class="fav-btn"
-          class:is-fav={meta.favorite}
-        >
-          <Star
-            size={20}
-            fill={meta.favorite ? "var(--highlight)" : "none"}
-            color={meta.favorite
-              ? "var(--highlight)"
-              : "var(--color-text-secondary)"}
-          />
-        </div>
-
-        <div style="width: 1px; height: 20px; background: var(--border);"></div>
-
-        <!-- Sidebar Toggle -->
-        <button
-          on:click={() => (showSidebar = !showSidebar)}
-          title="Propriedades (B)"
-          class="toggle-btn"
-          class:active={showSidebar}
-        >
-          <Menu size={18} />
-        </button>
-      </div>
-    </div>
+    </ShineBorder>
 
     <!-- Messages -->
     <div
@@ -406,7 +374,7 @@
               <Bot size={16} />
             {/if}
           </div>
-          <div class="msg-content markdown-content">
+          <div class="msg-content prose-invert">
             {@html getCachedMarkdown(msg)}
           </div>
         </div>
@@ -429,43 +397,60 @@
   <!-- Properties Sidebar (Notion-style) -->
   {#if showSidebar}
     <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="properties-sidebar" on:click|stopPropagation>
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <div
+      class="properties-sidebar"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Propriedades da Conversa"
+      on:click|stopPropagation
+    >
       <div class="sidebar-header">
         <span style="display:flex; align-items:center; gap:8px;"
           ><FileText size={16} /> Propriedades</span
         >
-        <button on:click={() => (showSidebar = false)} class="sidebar-close"
-          ><X size={16} /></button
-        >
+        <button on:click={() => (showSidebar = false)} class="sidebar-close">
+          <X size={16} />
+        </button>
       </div>
 
+      <!-- Settings: Stop propagation manually if needed or wrap content -->
       <!-- Folder -->
       <div class="sidebar-section">
-        <label class="sidebar-label"
-          ><Folder size={12} style="display:inline; margin-right:4px;" /> Pasta</label
-        >
-        <input
-          type="text"
-          bind:value={folder}
-          on:blur={saveMeta}
-          placeholder="Ex.: Trabalho"
-          class="sidebar-input"
-        />
+        <div class="sidebar-label">
+          <span
+            style="display:flex; align-items:center; gap:4px; margin-bottom:8px;"
+          >
+            <Folder size={12} /> Pasta
+          </span>
+          <SpotlightInput
+            bind:value={folder}
+            on:blur={saveMeta}
+            placeholder="Ex.: Trabalho"
+            className="mb-2"
+          />
+        </div>
       </div>
+
+      <!-- ... (skipping other sections for brevity in replacement if possible, but replace_file_content needs contiguous)-->
+      <!-- Actually, I need to replace the top part and the bottom part separately or use multi_replace. -->
+      <!-- Let's use multi_replace to be precise. -->
 
       <!-- Tags -->
       <div class="sidebar-section">
-        <label class="sidebar-label"
-          ><Tags size={12} style="display:inline; margin-right:4px;" /> Tags</label
-        >
-        <input
-          type="text"
-          bind:value={tags}
-          on:blur={saveMeta}
-          placeholder="importante, ideia"
-          class="sidebar-input"
-        />
+        <div class="sidebar-label">
+          <span
+            style="display:flex; align-items:center; gap:4px; margin-bottom:8px;"
+          >
+            <Tags size={12} /> Tags
+          </span>
+          <SpotlightInput
+            bind:value={tags}
+            on:blur={saveMeta}
+            placeholder="importante, ideia"
+            className="mb-2"
+          />
+        </div>
         {#if tags}
           <div
             style="margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap;"
@@ -482,9 +467,12 @@
 
       <!-- Stats -->
       <div class="sidebar-section">
-        <label class="sidebar-label"
-          ><BarChart2 size={12} style="display:inline; margin-right:4px;" /> Estatísticas</label
+        <div
+          class="sidebar-label"
+          style="display:flex; align-items:center; gap:4px; margin-bottom:8px;"
         >
+          <BarChart2 size={12} /> Estatísticas
+        </div>
         <div class="stats-grid">
           <div class="stat-item">
             <span class="stat-value">{conversation.messages.length}</span>
@@ -510,18 +498,24 @@
       <!-- Notes -->
       <div
         class="sidebar-section"
-        style="flex: 1; display: flex; flex-direction: column;"
+        style="flex: 1; display: flex; flex-direction: column; overflow: hidden;"
       >
-        <label class="sidebar-label"
-          ><FileText size={12} style="display:inline; margin-right:4px;" /> Notas
-          Privadas</label
+        <div
+          class="sidebar-label"
+          style="display:flex; align-items:center; gap:4px; margin-bottom:8px;"
         >
-        <textarea
-          bind:value={notes}
-          on:blur={saveMeta}
-          placeholder="Suas reflexões, insights..."
-          class="sidebar-notes"
-        ></textarea>
+          <FileText size={12} /> Notas Privadas
+        </div>
+        <div style="flex: 1; overflow-y: auto; padding-right: 4px;">
+          <RichTextEditor
+            content={notes}
+            on:change={(e) => {
+              notes = e.detail;
+              saveMeta();
+            }}
+            placeholder="Suas reflexões... (Selecione texto para formatar)"
+          />
+        </div>
       </div>
 
       <!-- Save Button -->

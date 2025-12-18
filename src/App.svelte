@@ -3,6 +3,8 @@
     import Sidebar from "./lib/Sidebar.svelte";
     import ChatView from "./lib/ChatView.svelte";
     import DebugPanel from "./lib/components/DebugPanel.svelte";
+    import CommandPalette from "./lib/components/CommandPalette.svelte";
+    import GlitchButton from "./lib/components/GlitchButton.svelte";
     import { normalizeConversation, getConvKey } from "./lib/utils.js";
     import {
         loadConversations,
@@ -35,7 +37,11 @@
         try {
             const convs = await loadConversations();
             if (convs.length > 0) {
-                allConversations = convs.map(normalizeConversation);
+                // Normalize AND sort by updateTime desc
+                allConversations = convs
+                    .map(normalizeConversation)
+                    .sort((a, b) => (b.updateTime || 0) - (a.updateTime || 0));
+
                 showWelcome = false;
                 console.log(
                     `📂 Loaded ${allConversations.length} conversations`,
@@ -379,26 +385,15 @@
 
             <div style="flex: 1;"></div>
 
-            <button
-                on:click={exportAllMetadata}
-                title="Exportar metadata (Ctrl+E)"
-                style="padding: 6px 10px; font-size: 11px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-2); color: var(--color-text-secondary); cursor: pointer;"
-            >
+            <GlitchButton on:click={exportAllMetadata}>
                 💾 Exportar Meta
-            </button>
-            <button
-                on:click={importMetadata}
-                title="Importar metadata (Ctrl+I)"
-                style="padding: 6px 10px; font-size: 11px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-2); color: var(--color-text-secondary); cursor: pointer;"
-            >
+            </GlitchButton>
+            <GlitchButton on:click={importMetadata}>
                 📥 Importar Meta
-            </button>
-            <button
-                on:click={clearAllData}
-                style="padding: 6px 10px; font-size: 11px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-2); color: #ff6b6b; cursor: pointer;"
-            >
+            </GlitchButton>
+            <GlitchButton on:click={clearAllData} className="danger">
                 🗑️ Limpar Tudo
-            </button>
+            </GlitchButton>
         </div>
 
         <!-- ChatView takes remaining space -->
@@ -414,6 +409,19 @@
 
 <!-- Debug Panel (Ctrl+Shift+D to toggle) -->
 <DebugPanel />
+
+<!-- Command Palette (Ctrl+K) -->
+<CommandPalette
+    conversations={allConversations}
+    {metadata}
+    on:select={handleSelect}
+    on:action={(e) => {
+        const action = e.detail.action;
+        if (action === "favorites") activeFolder = "__FAV__";
+        else if (action === "all") activeFolder = "__ALL__";
+        else if (action === "stats") console.log("Open stats");
+    }}
+/>
 
 <style>
     /* ===== PERFORMANCE OPTIMIZATIONS ===== */
@@ -444,11 +452,5 @@
     label:hover {
         transform: scale(1.05);
         box-shadow: 0 12px 40px rgba(217, 111, 255, 0.6) !important;
-    }
-
-    button:hover {
-        transform: scale(1.05);
-        background: var(--accent-2) !important;
-        color: #fff !important;
     }
 </style>

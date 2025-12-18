@@ -332,10 +332,12 @@
     {/if}
 
     <!-- Sections -->
-    <div
+    <!-- Sections -->
+    <section
         bind:this={scrollContainer}
-        style="flex: 1; overflow-y: auto; padding: 8px 0;"
-        tabindex="0"
+        class="sidebar-scroll-area"
+        style="flex: 1; overflow-y: auto; padding: 8px 0; outline: none;"
+        aria-label="Conteúdo da Sidebar"
     >
         <!-- GERAL Section -->
         <div style="margin-bottom: 10px;">
@@ -411,7 +413,7 @@
                 {/if}
             </div>
         {/if}
-    </div>
+    </section>
 
     <!-- Footer hotkeys hint -->
     <div
@@ -439,7 +441,7 @@
 
 <style>
     /* Remove focus outline from scroll container (keyboard nav is handled) */
-    div[tabindex="0"]:focus {
+    .sidebar-scroll-area:focus {
         outline: none;
     }
 
@@ -458,12 +460,6 @@
         transform: scale(1.05);
         background: var(--accent-2) !important;
         color: #fff !important;
-    }
-
-    .conv-row:hover {
-        transform: translateX(4px);
-        border-color: var(--highlight) !important;
-        box-shadow: 0 2px 10px rgba(217, 111, 255, 0.2) !important;
     }
 
     kbd {

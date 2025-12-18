@@ -1,6 +1,6 @@
 <script>
     import { createEventDispatcher } from "svelte";
-    import { getConvKey } from "../utils.js";
+    import { getConvKey, formatDate } from "../utils.js";
     import BorderBeam from "./BorderBeam.svelte";
 
     export let title = "";
@@ -21,6 +21,17 @@
     function select(key) {
         dispatch("select", { id: key });
     }
+
+    let renderLimit = 50;
+    function handleScroll(e) {
+        const { scrollTop, scrollHeight, clientHeight } = e.target;
+        if (scrollTop + clientHeight > scrollHeight - 50) {
+            renderLimit += 50;
+        }
+    }
+
+    // Reset limit when category changes or closes
+    $: if (!isOpen) renderLimit = 50;
 </script>
 
 <div style="margin: 4px 8px;">
@@ -36,12 +47,13 @@
         </div>
     </BorderBeam>
 
-    <!-- Lista de conversas -->
+    <!-- Lista de conversas com Lazy Rendering -->
     {#if isOpen && conversations.length > 0}
         <div
+            on:scroll={handleScroll}
             style="margin-top: 4px; margin-left: 12px; max-height: 300px; overflow-y: auto;"
         >
-            {#each conversations as conv}
+            {#each conversations.slice(0, renderLimit) as conv (getConvKey(conv))}
                 {@const key = getConvKey(conv)}
                 {@const meta = metadata[key] ?? {}}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -71,6 +83,11 @@
                             : 'var(--color-text-secondary)'}; margin-top: 2px; display: flex; gap: 6px;"
                     >
                         <span>💬 {conv.messages.length}</span>
+                        {#if conv.createTime}
+                            <span style="opacity:0.6"
+                                >• {formatDate(conv.createTime)}</span
+                            >
+                        {/if}
                         {#if meta.favorite}<span
                                 style="color: var(--highlight);">★</span
                             >{/if}
@@ -78,6 +95,13 @@
                     </div>
                 </div>
             {/each}
+            {#if renderLimit < conversations.length}
+                <div
+                    style="padding:8px; text-align:center; font-size:10px; opacity:0.5;"
+                >
+                    Calculating...
+                </div>
+            {/if}
         </div>
     {/if}
 

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,8 +7,6 @@
 /* ===========================================================
    ULTRA PREMIUM DESIGN SYSTEM - DARK AURORA
 =========================================================== */
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
   /* Background Layers - Midnight Aurora */
@@ -210,4 +210,153 @@ a {
 
 .glow {
   box-shadow: var(--shadow-glow);
+}
+
+/* ===========================================================
+   PROSE-INVERT TYPOGRAPHY (Dark Mode Optimized)
+=========================================================== */
+
+.prose-invert,
+.prose-invert * {
+  color: var(--color-text-primary);
+}
+
+.prose-invert h1,
+.prose-invert h2,
+.prose-invert h3,
+.prose-invert h4,
+.prose-invert h5,
+.prose-invert h6 {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+.prose-invert h1 {
+  font-size: 1.75em;
+}
+
+.prose-invert h2 {
+  font-size: 1.5em;
+}
+
+.prose-invert h3 {
+  font-size: 1.25em;
+}
+
+.prose-invert h4 {
+  font-size: 1.1em;
+}
+
+.prose-invert p {
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+  margin-bottom: 1em;
+}
+
+.prose-invert a {
+  color: var(--highlight);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose-invert a:hover {
+  color: var(--accent-2);
+}
+
+.prose-invert strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.prose-invert em {
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+.prose-invert code {
+  background: var(--layer-2);
+  color: var(--highlight);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: var(--font-mono);
+}
+
+.prose-invert pre {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.prose-invert pre code {
+  background: none;
+  padding: 0;
+  color: var(--color-text-primary);
+}
+
+.prose-invert ul,
+.prose-invert ol {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+  color: var(--color-text-secondary);
+}
+
+.prose-invert li {
+  margin-bottom: 0.5em;
+}
+
+.prose-invert ul li::marker {
+  color: var(--highlight);
+}
+
+.prose-invert ol li::marker {
+  color: var(--highlight);
+}
+
+.prose-invert blockquote {
+  border-left: 3px solid var(--highlight);
+  padding-left: 1em;
+  margin: 1em 0;
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+.prose-invert hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2em 0;
+}
+
+.prose-invert table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+
+.prose-invert th,
+.prose-invert td {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.prose-invert th {
+  background: var(--layer-2);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.prose-invert td {
+  color: var(--color-text-secondary);
+}
+
+.prose-invert img {
+  max-width: 100%;
+  border-radius: var(--radius);
 }
