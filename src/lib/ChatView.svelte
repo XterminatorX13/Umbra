@@ -553,14 +553,14 @@
   }
 
   .message-bubble {
-    /* Performance: isolate layout and paint */
     contain: content;
     content-visibility: auto;
     contain-intrinsic-size: 0 100px;
-    margin-bottom: 24px;
+    margin-bottom: 32px;
     display: flex;
-    gap: 16px;
-    animation: messageIn 0.4s ease-out backwards;
+    gap: 20px;
+    animation: messageIn 0.4s cubic-bezier(0.2, 0.9, 0.2, 1) backwards;
+    padding: 0 16px;
   }
 
   .message-bubble.user {
@@ -568,40 +568,79 @@
   }
 
   .message-bubble.user .msg-content {
-    background: var(--layer-2);
-    border: 1px solid var(--border-light);
+    background: #1c1c1c;
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-top-right-radius: 4px;
+    border-top-left-radius: 16px;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    color: var(--color-text-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   .message-bubble.assistant .msg-content {
-    background: transparent;
-    border: 1px solid transparent;
-    padding-left: 0;
+    background: linear-gradient(135deg, #181024 0%, #0f0a16 100%);
+    border: 1px solid rgba(139, 92, 246, 0.1);
+    border-top-left-radius: 4px;
+    border-top-right-radius: 16px;
+    border-bottom-right-radius: 16px;
+    border-bottom-left-radius: 16px;
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    box-shadow:
+      0 4px 20px rgba(0, 0, 0, 0.2),
+      0 0 0 1px rgba(139, 92, 246, 0.05);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .message-bubble.assistant .msg-content::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(139, 92, 246, 0.2),
+      transparent
+    );
   }
 
   .msg-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--layer-2);
-    color: var(--color-text-secondary);
     flex-shrink: 0;
+    font-size: 14px;
   }
 
   .message-bubble.user .msg-avatar {
-    background: var(--highlight);
+    background: linear-gradient(135deg, #334155, #1e293b);
     color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .message-bubble.assistant .msg-avatar {
+    background: linear-gradient(135deg, #2a1b4e, #120820);
+    color: #c4b5fd;
+    box-shadow: 0 0 15px rgba(124, 58, 237, 0.15);
+    position: relative;
+    overflow: hidden;
   }
 
   .msg-content {
-    max-width: 85%;
-    padding: 12px 16px;
-    border-radius: 12px;
-    font-size: 1em; /* Inherits from container font-size */
-    line-height: 1.6;
+    max-width: 80%;
+    padding: 16px 24px;
+    font-size: 15px;
+    line-height: 1.7;
     color: var(--color-text-primary);
     overflow-wrap: break-word;
   }

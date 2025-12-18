@@ -1,0 +1,622 @@
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import {
+Search, Plus, Mic, Send, Bot, User, Sparkles, LayoutGrid, Folder,
+Archive, Trash2, Settings, Sidebar, PanelRight, Clock, Paperclip,
+Globe, Zap, FileText, Command as CmdIcon, CheckCircle, MoreHorizontal,
+ArrowUpRight, Fingerprint, Activity, Layers, Hash, X, ChevronRight,
+Maximize2, Minimize2, Circle
+} from 'lucide-react';
+
+// --- MOCKED DATA GENERATOR ---
+const generateMockData = () => {
+const folders = ['Deep Tech Ventures', 'Orbital Real Estate', 'Bio-Sequencing', 'Quantum Ledger'];
+const chats = [
+{
+id: 'c1',
+title: 'Alocação de Ativos: Q4 Strategy',
+date: '10:42 AM',
+ts: Date.now(),
+folder: 'Deep Tech Ventures',
+preview: 'Rebalanceamento de portfólio sugerido: +15% em Computação Quântica...',
+tags: ['Strategy', 'High Risk', 'Quantum'],
+relatedFiles: ['Q4_Outlook_BlackRock.pdf', 'Venture_Cap_Allocation.xlsx'],
+summary: 'A IA identificou uma assimetria positiva no setor de hardware quântico. Sugere-se liquidar posições em REITs
+comerciais clássicos.',
+messages: [
+{ id: 'm1', role: 'system', content: 'Secure Enclave Active. Identity Verified via Retina Scan.' },
+{ id: 'm2', role: 'user', content: 'Analise o sentimento do mercado para Hardware Quântico e sugira alocação.' },
+{ id: 'm3', role: 'assistant', content: 'Analisando 40TB de dados de mercado... \n\nO sentimento institucional está em
+**"Extreme Greed"** para supercondutores. \n\nRecomendação: Aumentar exposição em *IonQ* e *Rigetti* para 15% do fundo
+de risco. O potencial de *upside* é calculado em 420% nos próximos 18 meses.' }
+]
+},
+{
+id: 'c2',
+title: 'Projeto: Neon Skyline',
+date: 'Ontem',
+ts: Date.now() - 86400000,
+folder: 'Orbital Real Estate',
+preview: 'Contratos de arrendamento da estação orbital assinados.',
+tags: ['Space', 'Infra', 'Legal'],
+relatedFiles: ['Orbit_Lease_Agreement_vFinal.pdf'],
+summary: 'Aquisição de direitos de uso para o módulo comercial da estação Axiom. Pagamento em BTC confirmado.',
+messages: [
+{ id: 'm1', role: 'user', content: 'Status dos contratos orbitais?' },
+{ id: 'm2', role: 'assistant', content: 'Todos os signatários autenticaram via Multi-Sig. O módulo é legalmente seu por
+99 anos.' }
+]
+},
+{
+id: 'c3',
+title: 'Sequenciamento Genético Pessoal',
+date: 'Terça',
+ts: Date.now() - 600000000,
+folder: 'Bio-Sequencing',
+preview: 'Marcadores de longevidade atualizados. Telômeros estáveis.',
+tags: ['Health', 'Private'],
+relatedFiles: ['Genome_Report_2025.json'],
+summary: 'Terapia gênica mostrando eficácia de 94%. Idade biológica reduzida em 3.2 anos.',
+messages: []
+}
+];
+return { folders, chats };
+};
+
+const { folders: INITIAL_FOLDERS, chats: INITIAL_CHATS } = generateMockData();
+
+// --- COMPONENTS ---
+
+const Kbd = ({ children }) => (
+<kbd
+    className="hidden md:inline-flex h-5 items-center gap-1 rounded-[4px] border border-white/10 bg-white/5 px-1.5 font-mono text-[10px] font-medium text-slate-400 shadow-[0px_1px_0px_0px_rgba(255,255,255,0.05)] backdrop-blur-sm">
+    {children}
+</kbd>
+);
+
+const UserAvatar = ({ isUser }) => (
+<div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden ring-1 ${ isUser
+    ? 'bg-gradient-to-b from-slate-700 to-slate-800 ring-white/10'
+    : 'bg-gradient-to-b from-violet-900 to-[#120820] ring-violet-500/30 shadow-[0_0_15px_rgba(124,58,237,0.2)]' }`}>
+    {isUser ? (
+    <User size={14} className="text-slate-300 relative z-10" />
+    ) : (
+    <>
+        <div className="absolute inset-0 bg-violet-500/20 blur-md animate-pulse-slow"></div>
+        <Sparkles size={14} className="text-violet-300 relative z-10" />
+    </>
+    )}
+</div>
+);
+
+const SidebarItem = ({ data, active, onClick, selectionMode, selected, onToggleSelect }) => {
+return (
+<div onClick={selectionMode ? onToggleSelect : onClick} className={`relative w-full text-left px-3 py-3 mb-1
+    rounded-[12px] transition-all duration-300 group cursor-default select-none overflow-hidden flex items-start gap-3
+    border ${ active && !selectionMode ? 'bg-white/[0.08] border-white/5 shadow-[0_2px_10px_rgba(0,0,0,0.2)]' : selected
+    ? 'bg-violet-500/20 border-violet-500/30' : 'border-transparent hover:bg-white/[0.04]' }`}>
+    {/* "Lamp" Effect for Active State */}
+    {active && !selectionMode && (
+    <div
+        className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-violet-400 rounded-r-full shadow-[0_0_12px_rgba(167,139,250,0.8)]" />
+    )}
+
+    {selectionMode && (
+    <div className={`mt-0.5 transition-all duration-200`}>
+        <div className={`w-4 h-4 rounded-[5px] border flex items-center justify-center transition-colors ${selected
+            ? 'bg-violet-500 border-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.4)]' : 'border-slate-600 bg-white/5'
+            }`}>
+            {selected &&
+            <CheckCircle size={10} className="text-white" />}
+        </div>
+    </div>
+    )}
+
+    <div className="flex-1 min-w-0 relative z-10 pl-1">
+        <div className="flex justify-between items-center mb-0.5">
+            <h3 className={`font-semibold text-[13px] tracking-tight truncate ${active || selected ? 'text-white'
+                : 'text-slate-400 group-hover:text-slate-200' }`}>
+                {data.title}
+            </h3>
+            <span className="text-[10px] text-slate-600 shrink-0 ml-2 font-medium opacity-60">{data.date}</span>
+        </div>
+
+        <p className={`text-[11px] truncate leading-relaxed font-medium ${active ? 'text-slate-300'
+            : 'text-slate-600 group-hover:text-slate-500' }`}>
+            {data.preview}
+        </p>
+    </div>
+</div>
+);
+};
+
+const MessageBubble = ({ role, content }) => {
+const isUser = role === 'user';
+const isSystem = role === 'system';
+
+if (isSystem) {
+return (
+<div className="flex justify-center my-8 animate-fade-in select-none">
+    <div
+        className="px-3 py-1.5 rounded-full bg-[#0a0a0a]/80 border border-white/10 backdrop-blur-md flex items-center gap-2 shadow-xl">
+        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+        <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold font-mono">{content}</span>
+    </div>
+</div>
+);
+}
+
+return (
+<div className={`flex gap-4 mb-8 ${isUser ? 'flex-row-reverse' : 'flex-row' } animate-slide-up group`}>
+    <UserAvatar isUser={isUser} />
+
+    <div className={`flex flex-col max-w-[85%] ${isUser ? 'items-end' : 'items-start' }`}>
+        <div className="flex items-center gap-2 mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity px-1">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                {isUser ? 'You' : 'Aurora Core'}
+            </span>
+        </div>
+
+        <div className={`p-4 rounded-2xl text-[14px] leading-relaxed relative overflow-hidden shadow-sm transition-all
+            duration-300 ${ isUser
+            ? 'bg-[#1a1a1a] text-slate-200 rounded-tr-sm border border-white/5 hover:border-white/10'
+            : 'bg-gradient-to-br from-[#130d1c] to-[#0a0510] text-slate-200 rounded-tl-sm border border-violet-500/10 shadow-[0_4px_20px_rgba(0,0,0,0.2)] hover:border-violet-500/20'
+            }`}>
+            {!isUser && (
+            <div
+                className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-500/30 to-transparent">
+            </div>
+            )}
+
+            <p className="whitespace-pre-wrap font-normal tracking-wide relative z-10 text-slate-300">
+                {content.split('*').map((part, index) =>
+                index % 2 === 1 ? <span key={index}
+                    className="text-violet-200 font-semibold bg-violet-500/10 px-1 rounded mx-0.5 shadow-[0_0_10px_rgba(139,92,246,0.1)] border border-violet-500/10">{part}</span>
+                : part
+                )}
+            </p>
+        </div>
+    </div>
+</div>
+);
+};
+
+export default function App() {
+// --- STATE ---
+const [activeTab, setActiveTab] = useState('home');
+const [searchMode, setSearchMode] = useState('title');
+const [searchQuery, setSearchQuery] = useState('');
+const [activeConversationId, setActiveConversationId] = useState('c1');
+const [inputText, setInputText] = useState('');
+const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
+const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
+const [selectionMode, setSelectionMode] = useState(false);
+const [selectedIds, setSelectedIds] = useState(new Set());
+const [folders, setFolders] = useState(INITIAL_FOLDERS);
+const [chats, setChats] = useState(INITIAL_CHATS);
+
+const messagesEndRef = useRef(null);
+const searchInputRef = useRef(null);
+
+// --- SHORTCUTS HOOK ---
+useEffect(() => {
+const handleKeyDown = (e) => {
+if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); searchInputRef.current?.focus(); }
+if ((e.metaKey || e.ctrlKey) && e.key === '\\') { e.preventDefault(); setRightSidebarOpen(prev => !prev); }
+if ((e.metaKey || e.ctrlKey) && e.key === 'b') { e.preventDefault(); setLeftSidebarOpen(prev => !prev); }
+};
+window.addEventListener('keydown', handleKeyDown);
+return () => window.removeEventListener('keydown', handleKeyDown);
+}, []);
+
+// --- DERIVED STATE ---
+const activeConversation = chats.find(c => c.id === activeConversationId);
+const filteredChats = useMemo(() => {
+let list = chats;
+if (activeTab === 'home') list = list.filter(c => !c.archived && !c.trash);
+if (activeTab === 'archive') list = list.filter(c => c.archived && !c.trash);
+if (activeTab === 'trash') list = list.filter(c => c.trash);
+if (searchQuery) {
+const q = searchQuery.toLowerCase();
+list = list.filter(c => {
+const matchTitle = c.title.toLowerCase().includes(q);
+const matchDeep = searchMode === 'deep' && (c.preview.toLowerCase().includes(q) || c.messages.some(m =>
+m.content.toLowerCase().includes(q)));
+return matchTitle || matchDeep;
+});
+}
+return list.sort((a, b) => b.ts - a.ts);
+}, [chats, activeTab, searchQuery, searchMode]);
+
+const scrollToBottom = () => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); };
+useEffect(() => { scrollToBottom(); }, [activeConversation]);
+
+// --- HANDLERS ---
+const toggleSelect = (id) => {
+const newSet = new Set(selectedIds);
+if (newSet.has(id)) newSet.delete(id); else newSet.add(id);
+setSelectedIds(newSet);
+if (newSet.size > 0 && !selectionMode) setSelectionMode(true);
+if (newSet.size === 0 && selectionMode) setSelectionMode(false);
+};
+
+const selectAll = () => { setSelectedIds(new Set(filteredChats.map(c => c.id))); };
+
+return (
+<div
+    className="flex h-screen bg-[#000000] text-[#e0e0e0] font-sans antialiased overflow-hidden relative selection:bg-violet-500/30 selection:text-white">
+
+    {/* Import Inter Font */}
+    <style>
+        {
+            ` @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+            body {
+                font-family: 'Inter', sans-serif;
+            }
+
+            `
+        }
+    </style>
+
+    {/* --- CINEMATIC BACKGROUND --- */}
+    <div className="absolute inset-0 z-0 pointer-events-none">
+        {/* Base Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#080808] to-[#000000]"></div>
+
+        {/* Aurora Borealis Effects */}
+        <div
+            className="absolute top-[-30%] left-[10%] w-[80vw] h-[60vw] bg-[#2e1065] rounded-full blur-[200px] opacity-[0.15] mix-blend-screen animate-pulse-slow">
+        </div>
+        <div
+            className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] bg-[#4c1d95] rounded-full blur-[250px] opacity-[0.1] mix-blend-screen">
+        </div>
+
+        {/* Noise Overlay */}
+        <div
+            className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.035] mix-blend-overlay">
+        </div>
+    </div>
+
+    {/* --- LEFT SIDEBAR --- */}
+    <aside className={`relative z-20 flex-shrink-0 bg-[#0c0c0c]/80 backdrop-blur-2xl border-r border-white/[0.04]
+        transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] flex flex-col ${ leftSidebarOpen
+        ? 'w-[280px] translate-x-0' : 'w-0 -translate-x-full opacity-0 overflow-hidden' }`}>
+        {/* macOS Style Header */}
+        <div
+            className="h-14 flex items-center px-5 border-b border-white/[0.04] select-none drag-region justify-between">
+            <div className="flex gap-2 group">
+                <div
+                    className="w-3 h-3 rounded-full bg-[#FF5F57] shadow-sm group-hover:bg-[#FF5F57]/80 transition-colors border border-black/10">
+                </div>
+                <div
+                    className="w-3 h-3 rounded-full bg-[#FEBC2E] shadow-sm group-hover:bg-[#FEBC2E]/80 transition-colors border border-black/10">
+                </div>
+                <div
+                    className="w-3 h-3 rounded-full bg-[#28C840] shadow-sm group-hover:bg-[#28C840]/80 transition-colors border border-black/10">
+                </div>
+            </div>
+            <div className="flex items-center gap-2 opacity-40 hover:opacity-100 transition-opacity cursor-pointer">
+                <LayoutGrid size={14} />
+            </div>
+        </div>
+
+        {/* Search */}
+        <div className="px-4 py-4 space-y-4">
+            <div className="relative group">
+                <div
+                    className="absolute -inset-0.5 bg-gradient-to-r from-violet-600/30 to-indigo-600/30 rounded-[10px] opacity-0 group-focus-within:opacity-100 transition duration-700 blur-[5px]">
+                </div>
+                <div
+                    className="relative bg-[#141414] rounded-[10px] flex items-center border border-white/5 shadow-inner group-focus-within:bg-[#0a0a0a] transition-colors">
+                    <Search size={14} className="ml-3 text-slate-500" />
+                    <input ref={searchInputRef} type="text" placeholder="Search" value={searchQuery} onChange={(e)=>
+                    setSearchQuery(e.target.value)}
+                    className="w-full bg-transparent border-none text-[13px] text-white py-2 px-3 focus:ring-0
+                    placeholder:text-slate-600 font-medium h-9"
+                    />
+                    <div className="mr-2">
+                        <Kbd>⌘K</Kbd>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex gap-1 p-0.5 bg-[#141414] rounded-lg border border-white/5">
+                {[
+                { id: 'home', icon: Clock, label: 'Timeline' },
+                { id: 'folders', icon: Folder, label: 'Folders' },
+                ].map(tab => (
+                <button key={tab.id} onClick={()=> setActiveTab(tab.id)}
+                    className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-[6px] transition-all
+                    text-[11px] font-semibold ${
+                    activeTab === tab.id
+                    ? 'bg-[#2a2a2a] text-white shadow-[0_1px_2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]
+                    border border-white/5'
+                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.02]'
+                    }`}
+                    >
+                    <tab.icon size={12} />
+                    {tab.label}
+                </button>
+                ))}
+            </div>
+        </div>
+
+        {/* List Content */}
+        <div className="flex-1 overflow-y-auto px-3 pb-3 custom-scrollbar">
+            {activeTab === 'folders' ? (
+            <div className="space-y-0.5">
+                {folders.map(f => (
+                <div key={f}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-[10px] hover:bg-white/[0.04] cursor-pointer text-[13px] text-slate-300 group transition-all border border-transparent hover:border-white/[0.03]">
+                    <div className="flex items-center gap-3">
+                        <Folder size={14} className="text-slate-600 group-hover:text-violet-400 transition-colors" />
+                        <span className="font-medium tracking-tight">{f}</span>
+                    </div>
+                    <span className="text-[10px] text-slate-600 font-mono">{chats.filter(c => c.folder ===
+                        f).length}</span>
+                </div>
+                ))}
+                <div
+                    className="px-3 py-2 rounded-lg hover:bg-white/[0.04] cursor-pointer text-[12px] text-slate-500 flex items-center gap-3 mt-2 group transition-all border border-dashed border-white/10 hover:border-white/20">
+                    <div className="w-5 h-5 rounded flex items-center justify-center group-hover:text-violet-500">
+                        <Plus size={12} />
+                    </div>
+                    Create New Folder
+                </div>
+            </div>
+            ) : (
+            filteredChats.map(chat => (
+            <SidebarItem key={chat.id} data={chat} active={activeConversationId===chat.id} onClick={()=>
+                setActiveConversationId(chat.id)}
+                selectionMode={selectionMode}
+                selected={selectedIds.has(chat.id)}
+                onToggleSelect={() => toggleSelect(chat.id)}
+                />
+                ))
+                )}
+        </div>
+
+        {/* Footer */}
+        <div className="h-14 border-t border-white/[0.04] flex items-center justify-between px-4 bg-[#0a0a0a]/50">
+            <div
+                className="flex items-center gap-3 px-2 py-1.5 rounded-[8px] hover:bg-white/5 cursor-pointer transition-colors group">
+                <div
+                    className="w-6 h-6 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center text-[10px] font-bold text-white shadow-[0_0_10px_rgba(124,58,237,0.4)] ring-1 ring-white/10">
+                    AG</div>
+                <div className="flex flex-col">
+                    <span className="text-[11px] font-semibold text-slate-200 leading-none">Alexandre G.</span>
+                    <span
+                        className="text-[9px] text-slate-500 leading-none mt-1 group-hover:text-violet-400 transition-colors">Founder
+                        Plan</span>
+                </div>
+            </div>
+            <Settings size={14} className="text-slate-600 hover:text-white cursor-pointer transition-colors" />
+        </div>
+    </aside>
+
+    {/* --- MAIN CONTENT --- */}
+    <main className="flex-1 flex flex-col relative z-10 min-w-0 bg-transparent">
+
+        {/* Header */}
+        <header
+            className="h-14 border-b border-white/[0.04] flex items-center justify-between px-6 flex-shrink-0 bg-[#0a0a0a]/30 backdrop-blur-xl sticky top-0 z-30">
+            <div className="flex items-center gap-4">
+                <button onClick={()=> setLeftSidebarOpen(!leftSidebarOpen)}
+                    className="text-slate-500 hover:text-white transition-colors"
+                    >
+                    <Sidebar size={16} className={!leftSidebarOpen ? "" : "rotate-180" } />
+                </button>
+
+                <div className="h-4 w-px bg-white/5"></div>
+
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                    {activeConversation?.folder && (
+                    <>
+                        <span
+                            className="text-slate-500 flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded hover:bg-white/5 cursor-pointer transition-colors">
+                            <Folder size={12} /> {activeConversation.folder}
+                        </span>
+                        <ChevronRight size={12} className="text-slate-700" />
+                    </>
+                    )}
+                    <span className="font-semibold text-slate-200 tracking-tight text-[13px]">{activeConversation?.title
+                        || 'Dashboard'}</span>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+                <div
+                    className="flex items-center gap-1.5 px-2.5 py-1 bg-violet-500/10 border border-violet-500/20 rounded-full shadow-[0_0_10px_rgba(139,92,246,0.1)]">
+                    <Zap size={10} className="text-violet-400 fill-violet-400" />
+                    <span className="text-[10px] font-bold tracking-wide text-violet-300 uppercase">Pro v2.0</span>
+                </div>
+                <button onClick={()=> setRightSidebarOpen(!rightSidebarOpen)}
+                    className={`p-1.5 rounded hover:bg-white/5 text-slate-500 hover:text-white transition-colors
+                    ${rightSidebarOpen ? 'text-white bg-white/5' : ''}`}
+                    >
+                    <PanelRight size={16} />
+                </button>
+            </div>
+        </header>
+
+        {/* Chat Scroll Area */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar flex flex-col">
+            <div className="flex-1">
+                {!activeConversation ? (
+                <div className="h-full flex flex-col items-center justify-center opacity-40 select-none">
+                    <div
+                        className="w-24 h-24 rounded-[30px] bg-gradient-to-tr from-[#1a1a1a] to-[#0a0a0a] border border-white/5 flex items-center justify-center mb-6 shadow-2xl">
+                        <CmdIcon size={36} className="text-slate-600" />
+                    </div>
+                    <p className="text-slate-500 font-medium text-sm">No Thread Selected</p>
+                </div>
+                ) : (
+                <div className="max-w-3xl mx-auto w-full pt-4">
+                    <div className="flex justify-center mb-10">
+                        <div
+                            className="px-3 py-1 rounded-full bg-white/[0.02] border border-white/[0.04] text-[10px] font-medium text-slate-500 shadow-sm backdrop-blur-md">
+                            {activeConversation.date}
+                        </div>
+                    </div>
+                    {activeConversation.messages.map(msg => (
+                    <MessageBubble key={msg.id} {...msg} />
+                    ))}
+                    <div ref={messagesEndRef} />
+                </div>
+                )}
+            </div>
+        </div>
+
+        {/* Floating Input Area */}
+        {activeConversation && (
+        <div className="px-8 pb-8 pt-2 flex-shrink-0">
+            <div className="max-w-3xl mx-auto relative group">
+                {/* Glow Behind */}
+                <div
+                    className="absolute -inset-1 bg-gradient-to-r from-violet-600/30 via-fuchsia-600/30 to-violet-600/30 rounded-[24px] blur-xl opacity-0 group-focus-within:opacity-100 transition duration-700">
+                </div>
+
+                <div
+                    className="relative z-10 bg-[#121212]/95 backdrop-blur-2xl border border-white/[0.08] rounded-[20px] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.6)] transition-all overflow-hidden group-focus-within:border-violet-500/40 group-focus-within:ring-1 group-focus-within:ring-violet-500/20">
+                    <textarea value={inputText} onChange={(e)=> setInputText(e.target.value)}
+                  placeholder="Ask Aurora..."
+                  className="w-full bg-transparent border-none text-slate-200 px-5 pt-5 pb-2 max-h-[300px] resize-none focus:ring-0 placeholder:text-slate-600 font-normal text-[15px] leading-relaxed custom-scrollbar tracking-wide"
+                  rows={1}
+                  style={{ minHeight: '60px' }}
+                />
+                
+                <div className="px-3 pb-3 flex items-center justify-between">
+                   <div className="flex items-center gap-1">
+                      <button className="p-2 rounded-lg text-slate-500 hover:bg-white/5 hover:text-slate-200 transition-colors tooltip" title="Attach"><Paperclip size={16} /></button>
+                      <button className="p-2 rounded-lg text-slate-500 hover:bg-white/5 hover:text-slate-200 transition-colors tooltip" title="Web Search"><Globe size={16} /></button>
+                      <button className="p-2 rounded-lg text-slate-500 hover:bg-white/5 hover:text-violet-400 transition-colors flex items-center gap-2 group/btn">
+                         <Sparkles size={16} className="group-hover/btn:animate-pulse" />
+                      </button>
+                   </div>
+                   
+                   <div className="flex items-center gap-3">
+                      <button 
+                        className={`w-8 h-8 rounded-lg transition-all duration-300 flex items-center justify-center ${
+                          inputText.trim() 
+                            ? 'bg-violet-600 text-white shadow-[0_0_15px_rgba(124,58,237,0.5)] hover:bg-violet-500 hover:shadow-[0_0_20px_rgba(124,58,237,0.7)] hover:scale-105' 
+                            : 'bg-white/5 text-slate-600 cursor-not-allowed'
+                        }`}
+                      >
+                        <ArrowUpRight size={18} strokeWidth={2.5} />
+                      </button>
+                   </div>
+                </div>
+              </div>
+              <div className="flex justify-between mt-3 px-4 opacity-40 text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em]">
+                  <span>GPT-4 Turbo</span>
+                  <span className="flex items-center gap-1"><Circle size={6} className="fill-green-500 text-green-500" /> Secure</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* --- RIGHT SIDEBAR (Inspector) --- */}
+      <aside 
+        className={`relative z-20 flex-shrink-0 bg-[#0c0c0c]/80 backdrop-blur-2xl border-l border-white/[0.04] transition-all duration-300 ease-in-out flex flex-col ${
+          rightSidebarOpen && activeConversation ? 'w-[340px] translate-x-0' : 'w-0 translate-x-full opacity-0 overflow-hidden'
+        }`}
+      >
+        <div className="h-14 flex items-center px-6 border-b border-white/[0.04] justify-between">
+           <span className="font-semibold text-xs text-slate-400 tracking-wide">INSPECTOR</span>
+           <button onClick={() => setRightSidebarOpen(false)} className="text-slate-600 hover:text-white"><X size={14}/></button>
+        </div>
+
+        {activeConversation && (
+          <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-8">
+             
+             {/* Summary Card */}
+             <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 rounded-xl blur-md opacity-40 group-hover:opacity-60 transition-opacity"></div>
+                <div className="relative p-5 rounded-xl bg-[#141414]/80 border border-white/5 shadow-xl backdrop-blur-md">
+                    <div className="flex items-center gap-2 mb-3">
+                       <Activity size={14} className="text-violet-400" />
+                       <h4 className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Analysis</h4>
+                    </div>
+                    <p className="text-[12px] text-slate-400 leading-relaxed font-normal">
+                      {activeConversation.summary || 'Generating insights...'}
+                    </p>
+                </div>
+             </div>
+
+             {/* Details Grid */}
+             <div>
+               <h4 className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 pl-1">Details</h4>
+               <div className="grid grid-cols-1 gap-2">
+                  <div className="flex items-center justify-between p-3 rounded-[10px] bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors">
+                     <div className="flex items-center gap-2 text-slate-500 text-[11px]">
+                       <Fingerprint size={14} /> ID
+                     </div>
+                     <span className="text-[11px] font-mono text-slate-300">#8F2-229</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-[10px] bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors">
+                     <div className="flex items-center gap-2 text-slate-500 text-[11px]">
+                       <Layers size={14} /> Tokens
+                     </div>
+                     <span className="text-[11px] font-mono text-slate-300">2,491</span>
+                  </div>
+               </div>
+             </div>
+
+             {/* Tags */}
+             <div>
+               <h4 className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 pl-1">Tags</h4>
+               <div className="flex flex-wrap gap-2">
+                 {activeConversation.tags.map(t => (
+                   <span key={t} className="px-2.5 py-1.5 rounded-[8px] bg-[#1a1a1a] text-slate-400 text-[11px] font-medium border border-white/5 hover:border-violet-500/30 hover:text-violet-300 hover:shadow-[0_0_15px_rgba(139,92,246,0.15)] cursor-pointer transition-all">
+                     <Hash size={10} className="inline mr-1.5 opacity-40" />{t}
+                   </span>
+                 ))}
+                 <button className="px-2.5 py-1.5 rounded-[8px] border border-dashed border-white/10 text-slate-600 text-[11px] hover:text-slate-400 hover:border-white/20 transition-all">
+                   + Add
+                 </button>
+               </div>
+             </div>
+
+             {/* Files */}
+             <div>
+               <h4 className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 pl-1">Assets</h4>
+               <div className="space-y-2">
+                 {(activeConversation.relatedFiles || []).map(file => (
+                   <div key={file} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] group cursor-pointer border border-white/[0.04] hover:border-violet-500/20 transition-all">
+                      <div className="w-10 h-10 rounded-lg bg-[#0a0a0a] border border-white/5 flex items-center justify-center text-slate-500 group-hover:text-violet-400 shadow-inner">
+                        <FileText size={18} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-medium text-slate-300 truncate group-hover:text-white transition-colors">{file}</p>
+                        <p className="text-[10px] text-slate-600 font-medium">2h ago • PDF</p>
+                      </div>
+                      <MoreHorizontal size={14} className="text-slate-700 group-hover:text-slate-400" />
+                   </div>
+                 ))}
+               </div>
+             </div>
+
+          </div>
+        )}
+      </aside>
+
+      {/* Global Styles */}
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 0px; } /* Hidden scrollbar for native feel */
+        .custom-scrollbar:hover::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse-slow { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.25; } }
+        
+        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
+        .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.2, 0.9, 0.2, 1) forwards; }
+        .animate-pulse-slow { animation: pulse-slow 8s ease-in-out infinite; }
+      `}</style>
+    </div>
+  );
+}
