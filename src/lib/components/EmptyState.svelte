@@ -1,10 +1,37 @@
 <script>
-    import { Sparkles, MessageSquare, Upload, Command } from "lucide-svelte";
+    import { createEventDispatcher } from "svelte";
+    import {
+        Sparkles,
+        Star,
+        BarChart3,
+        Upload,
+        Command,
+        FolderOpen,
+    } from "lucide-svelte";
     import TextGradient from "./TextGradient.svelte";
     import SparkBadge from "./SparkBadge.svelte";
+    import GlitchButton from "./GlitchButton.svelte";
+
+    const dispatch = createEventDispatcher();
+
+    function goToFavorites() {
+        dispatch("navigate", { route: "favorites" });
+    }
+
+    function goToStats() {
+        dispatch("navigate", { route: "stats" });
+    }
+
+    function goToAll() {
+        dispatch("navigate", { route: "all" });
+    }
+
+    function openFilePicker() {
+        dispatch("openFilePicker");
+    }
 </script>
 
-<div class="empty-state">
+<div class="empty-state aurora-bg noise-overlay">
     <!-- Meteors Background -->
     <div class="meteors">
         {#each Array(8) as _, i}
@@ -17,7 +44,7 @@
     </div>
 
     <!-- Content -->
-    <div class="content">
+    <div class="content animate-slide-up">
         <div class="icon-glow">
             <Sparkles size={48} strokeWidth={1.5} />
         </div>
@@ -26,20 +53,33 @@
         <SparkBadge text="PKM Edition" className="mb-4" />
         <p class="subtitle">Seu PKM pessoal para conversas do ChatGPT</p>
 
-        <div class="tips">
-            <div class="tip">
+        <!-- Action Buttons -->
+        <div class="action-btn-group">
+            <GlitchButton on:click={openFilePicker}>
                 <Upload size={16} />
-                <span>Arraste seu <strong>conversations.json</strong> aqui</span
-                >
-            </div>
-            <div class="tip">
-                <Command size={16} />
-                <span>Pressione <kbd>Ctrl+K</kbd> para buscar</span>
-            </div>
-            <div class="tip">
-                <MessageSquare size={16} />
-                <span>Selecione uma conversa na sidebar</span>
-            </div>
+                Arrastar conversations.json aqui
+            </GlitchButton>
+
+            <GlitchButton on:click={goToFavorites}>
+                <Star size={16} />
+                Ver Favoritos
+            </GlitchButton>
+
+            <GlitchButton on:click={goToStats}>
+                <BarChart3 size={16} />
+                Estatísticas
+            </GlitchButton>
+
+            <GlitchButton on:click={goToAll}>
+                <FolderOpen size={16} />
+                Ver Todas as Conversas
+            </GlitchButton>
+        </div>
+
+        <!-- Keyboard Hint -->
+        <div class="kbd-hint">
+            <Command size={12} />
+            <span>Pressione <kbd>Ctrl+K</kbd> para buscar</span>
         </div>
     </div>
 </div>
@@ -146,41 +186,28 @@
         margin-bottom: 40px;
     }
 
-    .tips {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        align-items: center;
-    }
-
-    .tip {
+    /* Keyboard Hint */
+    .kbd-hint {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px 24px;
-        background: var(--layer-1);
+        justify-content: center;
+        gap: 8px;
+        margin-top: 32px;
+        padding: 10px 20px;
+        background: rgba(255, 255, 255, 0.02);
         border: 1px solid var(--border);
-        border-radius: var(--radius);
-        color: var(--color-text-secondary);
-        font-size: 13px;
-        transition: all 0.2s;
-    }
-
-    .tip:hover {
-        background: var(--layer-2);
-        border-color: var(--border-light);
-        transform: translateX(4px);
-    }
-
-    .tip strong {
-        color: var(--highlight);
-    }
-
-    .tip kbd {
-        padding: 4px 8px;
-        background: var(--bg-deep);
-        border-radius: 4px;
+        border-radius: 999px;
+        color: var(--color-text-tertiary);
         font-size: 11px;
+    }
+
+    .kbd-hint kbd {
+        padding: 3px 8px;
+        background: var(--layer-2);
+        border: 1px solid var(--border-light);
+        border-radius: 4px;
+        font-size: 10px;
         font-family: var(--font-mono);
+        color: var(--color-text-secondary);
     }
 </style>
