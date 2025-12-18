@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Aurora A10s</title>
+
+    <!-- PWA -->
+    <meta name="theme-color" content="#000000">
+    <link rel="manifest" href='data:application/manifest+json,{
+        "name": "Aurora A10s",
+        "short_name": "Aurora",
+        "display": "standalone",
+        "background_color": "#000000",
+        "theme_color": "#000000",
+        "icons": [{"src": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/svgs/solid/bolt.svg", "sizes": "192x192", "type": "image/svg+xml"}]
+    }'>
+
+    <!-- Deps -->
+    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #000000;
+            --card: #121212;
+            --border: #222;
+            --accent: #D96FFF;
+            --accent-dim: rgba(217, 111, 255, 0.15);
+            --text: #f0f0f0;
+            --text-dim: #888;
+            --danger: #FF453A;
+            --success: #32D74B;
+            --row-height: 84px;
+            --nav-height: 65px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* HEADER */
+        header {
+            height: 60px;
+            padding: 0 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 16px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .count-badge {
+            font-size: 11px;
+            background: #222;
+            padding: 2px 8px;
+            border-radius: 10px;
+            color: #888;
+            border: 1px solid #333;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .icon {
+            font-size: 18px;
+            color: #aaa;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .icon:active {
+            color: #fff;
+            transform: scale(0.95);
+        }
+
+        /* SEARCH */
+        .search-container {
+            padding: 10px 16px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .search-box {
+            width: 100%;
+            background: #161616;
+            border: 1px solid #333;
+            padding: 10px 12px;
+            color: #fff;
+            border-radius: 10px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .search-box input {
+            background: transparent;
+            border: none;
+            color: #fff;
+            width: 100%;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .search-toggles {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            padding-left: 5px;
+            color: #666;
+        }
+
+        .search-opt {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+        }
+
+        .search-opt.active {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .search-opt.active i {
+            color: var(--accent);
+        }
+
+        /* SELECTION HEADER */
+        #selection-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: #1a1a1a;
+            border-bottom: 1px solid var(--accent);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 16px;
+            z-index: 110;
+            transform: translateY(-100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #selection-header.active {
+            transform: translateY(0);
+        }
+
+        .sel-btn {
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* VIEWPORTS - Otimizados para GPU */
+        #main-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #virtual-viewport,
+        #folder-viewport {
+            position: absolute;
+            inset: 0;
+            overflow-y: auto;
+            display: none;
+            will-change: transform;
+            /* Dica para o A10s */
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #virtual-viewport.active,
+        #folder-viewport.active {
+            display: block;
+        }
+
+        #phantom {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: -1;
+        }
+
+        #content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        /* ROWS - Containment para Performance */
+        .row {
+            height: var(--row-height);
+            width: 100%;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            position: absolute;
+            contain: content;
+            /* Importante para listas longas */
+        }
+
+        .row.selected {
+            background: rgba(217, 111, 255, 0.08);
+            border-left: 3px solid var(--accent);
+        }
+
+        .row-check {
+            width: 22px;
+            height: 22px;
+            border: 2px solid #444;
+            border-radius: 50%;
+            margin-right: 14px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .selecting .row-check {
+            display: flex;
+        }
+
+        .row.selected .row-check {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .row.selected .row-check::after {
+            content: '✓';
+            color: #000;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .row-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding: 8px 0;
+            pointer-events: none;
+        }
+
+        .row-title {
+            font-size: 14px;
+            color: #eee;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .row-meta {
+            font-size: 11px;
+            color: #666;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .tag {
+            background: #222;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #aaa;
+            font-size: 10px;
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .row-snippet {
+            font-size: 11px;
+            color: #888;
+            margin-top: 6px;
+            font-style: italic;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: none;
+        }
+
+        .row-snippet.visible {
+            display: block;
+            color: var(--accent);
+            opacity: 0.9;
+        }
+
+        .row-snippet b {
+            color: #fff;
+            background: rgba(217, 111, 255, 0.2);
+            padding: 0 2px;
+            border-radius: 2px;
+            font-weight: 700;
+        }
+
+        /* FOOTER */
+        .footer-container {
+            height: var(--nav-height);
+            border-top: 1px solid var(--border);
+            background: #080808;
+            position: relative;
+            z-index: 100;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .nav-bar,
+        .bulk-bar {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            background: #080808;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #555;
+            font-size: 10px;
+            gap: 5px;
+            cursor: pointer;
+            height: 100%;
+            justify-content: center;
+        }
+
+        .nav-item.active {
+            color: var(--accent);
+        }
+
+        .bulk-bar {
+            transform: translateY(100%);
+            border-top: 2px solid var(--accent);
+            background: #151018;
+            z-index: 101;
+        }
+
+        .bulk-bar.visible {
+            transform: translateY(0);
+        }
+
+        .bulk-action {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #ddd;
+            font-size: 10px;
+            gap: 5px;
+            height: 100%;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .bulk-action.danger {
+            color: var(--danger);
+        }
+
+        /* CHAT SHEET */
+        .sheet {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 200;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sheet.open {
+            transform: translateY(0);
+        }
+
+        .sheet-header {
+            height: 60px;
+            padding: 0 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.95);
+        }
+
+        .sheet-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 16px;
+            background: #050505;
+        }
+
+        .msg {
+            margin-bottom: 25px;
+            font-size: 15px;
+            line-height: 1.6;
+            max-width: 95%;
+            word-wrap: break-word;
+            user-select: text;
+        }
+
+        .msg.user {
+            margin-left: auto;
+            background: var(--accent-dim);
+            color: #fff;
+            padding: 12px 18px;
+            border-radius: 18px 18px 4px 18px;
+            border: 1px solid rgba(217, 111, 255, 0.1);
+            width: fit-content;
+            max-width: 85%;
+        }
+
+        .msg.model {
+            margin-right: auto;
+            color: #ccc;
+        }
+
+        .msg code {
+            background: #1a1a1a;
+            color: var(--accent);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .msg pre {
+            background: #121212;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid #333;
+            margin: 12px 0;
+        }
+
+        .load-more-btn {
+            width: 100%;
+            padding: 12px;
+            background: #111;
+            color: var(--accent);
+            border: 1px solid #333;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        /* FOLDER & MODALS */
+        .folder-grid {
+            padding: 12px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .folder-card {
+            background: #121212;
+            padding: 18px;
+            border-radius: 12px;
+            border: 1px solid #222;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .folder-delete {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #444;
+            padding: 8px;
+        }
+
+        .modal-mask {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal {
+            background: #1a1a1a;
+            width: 85%;
+            max-width: 340px;
+            border-radius: 20px;
+            border: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            max-height: 60vh;
+        }
+
+        .modal-header {
+            padding: 18px;
+            border-bottom: 1px solid #333;
+            text-align: center;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .modal-list {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .folder-opt {
+            padding: 16px 20px;
+            border-bottom: 1px solid #222;
+            color: #ddd;
+            font-size: 14px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .modal-input-container {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .modal-input {
+            background: #111;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 15px;
+            width: 100%;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            font-size: 14px;
+            border: none;
+        }
+
+        .btn-cancel {
+            background: #222;
+            color: #ccc;
+        }
+
+        .btn-confirm {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        /* PROGRESS MODAL */
+        #progress-modal .modal-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px;
+            gap: 15px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #333;
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .progress-text {
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .progress-sub {
+            color: #888;
+            font-size: 12px;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .toast {
+            position: fixed;
+            top: 12%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #222;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 13px;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.2s;
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translate(-50%, -40%);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="brand">AURORA <span class="count-badge" id="total-badge">0</span></div>
+        <div class="actions">
+            <i class="fas fa-download icon" onclick="app.exportData()" title="Backup"></i>
+            <i class="fas fa-trash-alt icon" onclick="app.resetDB()" title="Limpar DB"></i>
+            <label for="import-json"><i class="fas fa-cloud-upload-alt icon"></i></label>
+            <input type="file" id="import-json" hidden multiple accept=".json">
+        </div>
+    </header>
+
+    <div class="search-container">
+        <div class="search-box">
+            <i class="fas fa-search" style="color:#555"></i>
+            <input type="text" id="search-input" placeholder="Buscar conversas...">
+        </div>
+        <div class="search-toggles">
+            <div class="search-opt active" id="opt-title" onclick="app.setSearchMode('title')">
+                <i class="fas fa-heading"></i> Título
+            </div>
+            <div class="search-opt" id="opt-deep" onclick="app.setSearchMode('deep')">
+                <i class="fas fa-align-left"></i> Conteúdo (Deep)
+            </div>
+        </div>
+    </div>
+
+    <div id="selection-header">
+        <div style="display:flex; align-items:center; gap:12px">
+            <i class="fas fa-arrow-left icon" onclick="app.toggleSelectionMode()"></i>
+            <span id="sel-count" style="font-weight:700; color:#fff">0</span>
+        </div>
+        <div class="sel-btn" onclick="app.selectAll()">Selecionar Tudo</div>
+    </div>
+
+    <div id="main-container">
+        <div id="virtual-viewport" class="active">
+            <div id="phantom"></div>
+            <div id="content"></div>
+        </div>
+        <div id="folder-viewport"></div>
+    </div>
+
+    <div class="footer-container">
+        <nav class="nav-bar" id="nav-bar">
+            <div class="nav-item active" id="tab-home" onclick="app.switchTab('home')"><i
+                    class="fas fa-bolt"></i><span>Home</span></div>
+            <div class="nav-item" id="tab-folders" onclick="app.switchTab('folders')"><i
+                    class="fas fa-folder"></i><span>Pastas</span></div>
+            <div class="nav-item" id="tab-archived" onclick="app.switchTab('archived')"><i
+                    class="fas fa-archive"></i><span>Arquivo</span></div>
+            <div class="nav-item" id="tab-trash" onclick="app.switchTab('trash')"><i
+                    class="fas fa-trash"></i><span>Lixo</span></div>
+        </nav>
+        <div class="bulk-bar" id="bulk-bar"></div>
+    </div>
+
+    <div class="sheet" id="chat-sheet">
+        <div class="sheet-header">
+            <i class="fas fa-chevron-down icon" onclick="app.closeChat()"></i>
+            <div id="chat-title"
+                style="font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; max-width:60%;">Chat</div>
+            <div style="display:flex; gap:15px">
+                <i class="fas fa-folder icon" onclick="app.openFolderModal(true)"></i>
+                <i class="fas fa-check-circle icon" onclick="app.triggerCurrentChatActions()"></i>
+            </div>
+        </div>
+        <div class="sheet-body" id="chat-body"></div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-mask" id="progress-modal">
+        <div class="modal modal-content">
+            <div class="spinner"></div>
+            <div class="progress-text" id="progress-status">Preparando...</div>
+            <div class="progress-sub" id="progress-details">Isso pode levar alguns segundos</div>
+            <div class="progress-bar-container">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-mask" id="folder-modal" onclick="if(event.target===this) this.style.display='none'">
+        <div class="modal">
+            <div class="modal-header">Organizar em...</div>
+            <div class="modal-list" id="modal-list"></div>
+            <div class="folder-opt"
+                style="color:var(--accent); justify-content:center; border-top:1px solid #333; font-weight:700"
+                onclick="app.openCreateFolderModal()">
+                <i class="fas fa-plus"></i> Nova Pasta
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-mask" id="new-folder-modal">
+        <div class="modal">
+            <div class="modal-header">Nova Pasta</div>
+            <div class="modal-input-container">
+                <input type="text" id="new-folder-input" class="modal-input" placeholder="Nome..." autocomplete="off">
+                <div class="modal-actions">
+                    <button class="btn btn-cancel"
+                        onclick="document.getElementById('new-folder-modal').style.display='none'">Cancelar</button>
+                    <button class="btn btn-confirm" onclick="app.confirmCreateFolder()">Criar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-mask" id="delete-folder-modal">
+        <div class="modal">
+            <div class="modal-header" style="color:var(--danger)">Excluir Pasta</div>
+            <div style="padding:20px; text-align:center; color:#ccc; font-size:14px">O que fazer com os chats desta
+                pasta?</div>
+            <div class="modal-input-container" style="padding-top:0">
+                <button class="btn btn-confirm" onclick="app.confirmDeleteFolder('keep')">Mover para Home</button>
+                <button class="btn btn-danger" onclick="app.confirmDeleteFolder('trash')">Mover para Lixeira</button>
+                <button class="btn btn-cancel" style="margin-top:10px"
+                    onclick="document.getElementById('delete-folder-modal').style.display='none'">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Ação concluída</div>
+
+    <script>
+        // --- WORKER FOR IMPORTING ---
+        const workerCode = `
+self.onmessage = async function(e) {
+    const { file, existingIds } = e.data;
+    const reader = new FileReader();
+    
+    reader.onload = function(ev) {
+        try {
+            const text = ev.target.result;
+            self.postMessage({type: 'status', msg: 'Analisando JSON...'});
+            
+            const json = JSON.parse(text);
+            const list = Array.isArray(json) ? json : (json.conversations || [json]);
+            
+            if(json.folders) self.postMessage({ type: 'folders', data: json.folders });
+
+            const total = list.length;
+            const batchSize = 100; // Small batch to prevent UI freeze
+            let batch = [];
+            let processed = 0;
+            const idSet = new Set(existingIds);
+
+            for(const item of list) {
+                if(!item.id) item.id = crypto.randomUUID();
+                
+                if(idSet.has(item.id)) {
+                    processed++; continue;
+                }
+
+                // Deep Search Indexing
+                let searchText = "";
+                if(item.mapping) {
+                    searchText = Object.values(item.mapping)
+                        .filter(n => n.message?.content?.parts?.[0])
+                        .map(n => n.message.content.parts.join(' '))
+                        .join(' ').toLowerCase();
+                } else if(item.searchText) {
+                    searchText = item.searchText;
+                }
+
+                batch.push({
+                    id: item.id,
+                    title: item.title || 'Sem Título',
+                    ts: item.create_time ? item.create_time * 1000 : (item.ts || Date.now()),
+                    status: item.status || 'inbox',
+                    folder: item.folder || null,
+                    searchText: searchText,
+                    raw: item.raw || item
+                });
+
+                if(batch.length >= batchSize) {
+                    self.postMessage({ type: 'batch', data: batch, progress: (processed / total) * 100, msg: \`Processando \${processed}/\${total}\` });
+                    batch = [];
+                }
+                processed++;
+            }
+
+            if(batch.length > 0) {
+                self.postMessage({ type: 'batch', data: batch, progress: 100, msg: 'Finalizando...' });
+            }
+            
+            self.postMessage({ type: 'done', newCount: processed });
+
+        } catch(err) {
+            self.postMessage({ type: 'error', msg: err.message });
+        }
+    };
+    reader.readAsText(file);
+};
+`;
+
+        const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+        const workerUrl = URL.createObjectURL(workerBlob);
+
+        // --- DB ---
+        const db = new Dexie("AuroraFinal_A10s_DB");
+        db.version(1).stores({ chats: 'id, title, status, folder, ts', folders: '++id, name' });
+
+        class AuroraApp {
+            constructor() {
+                this.cache = []; this.visible = []; this.selected = new Set(); this.folderNames = [];
+                this.state = { tab: 'home', selecting: false, searchMode: 'title', query: '', activeFolder: null, currentChatId: null, folderToDelete: null };
+                this.config = { rowH: 84, buffer: 10 };
+                this.els = {
+                    vp: document.getElementById('virtual-viewport'), folderVp: document.getElementById('folder-viewport'),
+                    content: document.getElementById('content'), phantom: document.getElementById('phantom'),
+                    bulkBar: document.getElementById('bulk-bar'), toast: document.getElementById('toast'),
+                    pModal: document.getElementById('progress-modal'), pStatus: document.getElementById('progress-status'),
+                    pDetails: document.getElementById('progress-details'), pFill: document.getElementById('progress-fill')
+                };
+                this.init();
+            }
+
+            async init() {
+                // Optimized Scroll for A10s
+                let ticking = false;
+                this.els.vp.addEventListener('scroll', () => {
+                    if (!ticking) {
+                        window.requestAnimationFrame(() => {
+                            this.renderVirtual();
+                            ticking = false;
+                        });
+                        ticking = true;
+                    }
+                });
+
+                document.getElementById('import-json').addEventListener('change', (e) => this.import(e));
+
+                let sTimeout;
+                document.getElementById('search-input').addEventListener('input', (e) => {
+                    clearTimeout(sTimeout);
+                    sTimeout = setTimeout(() => {
+                        this.state.query = e.target.value.toLowerCase();
+                        this.runFilter();
+                    }, this.state.searchMode === 'deep' ? 400 : 150);
+                });
+
+                document.getElementById('new-folder-input').addEventListener('keyup', (e) => { if (e.key === 'Enter') this.confirmCreateFolder(); });
+
+                // Global Drag
+                document.addEventListener('touchmove', (e) => this.onMove(e), { passive: false });
+                document.addEventListener('mousemove', (e) => this.onMove(e));
+                document.addEventListener('touchend', () => this.clearDrag());
+                document.addEventListener('mouseup', () => this.clearDrag());
+
+                await this.reloadData();
+            }
+
+            async reloadData() {
+                const folders = await db.folders.toArray();
+                this.folderNames = folders.map(f => f.name).sort();
+
+                // RAM DIET: Load metadata ONLY. Do NOT load 'raw'.
+                this.cache = [];
+                await db.chats.orderBy('ts').reverse().each(chat => {
+                    this.cache.push({
+                        id: chat.id,
+                        title: chat.title,
+                        ts: chat.ts,
+                        status: chat.status,
+                        folder: chat.folder,
+                        searchText: chat.searchText
+                        // 'raw' is purposefully EXCLUDED from RAM cache
+                    });
+                });
+
+                this.runFilter();
+            }
+
+            // --- WORKER IMPORT ---
+            async import(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                this.els.pModal.style.display = 'flex';
+                this.els.pStatus.innerText = "Preparando...";
+                this.els.pFill.style.width = '0%';
+
+                const existingIds = await db.chats.toCollection().primaryKeys();
+                const worker = new Worker(workerUrl);
+
+                worker.postMessage({ file, existingIds });
+
+                worker.onmessage = async (ev) => {
+                    const msg = ev.data;
+                    if (msg.type === 'batch') {
+                        await db.chats.bulkPut(msg.data);
+                        this.els.pFill.style.width = `${msg.progress}%`;
+                        this.els.pDetails.innerText = msg.msg;
+                    } else if (msg.type === 'folders') {
+                        for (const f of msg.data) {
+                            if ((await db.folders.where('name').equals(f.name).count()) === 0) await db.folders.add({ name: f.name });
+                        }
+                    } else if (msg.type === 'done') {
+                        this.els.pFill.style.width = '100%';
+                        setTimeout(() => {
+                            this.els.pModal.style.display = 'none';
+                            this.showToast("Importação Finalizada");
+                            this.reloadData();
+                        }, 500);
+                        worker.terminate();
+                    } else if (msg.type === 'error') {
+                        this.els.pStatus.innerText = "Erro";
+                        this.els.pDetails.innerText = msg.msg;
+                        setTimeout(() => this.els.pModal.style.display = 'none', 3000);
+                        worker.terminate();
+                    }
+                };
+                e.target.value = '';
+            }
+
+            async exportData() {
+                this.showToast("Gerando backup...");
+                const data = { version: 1, exportedAt: Date.now(), folders: await db.folders.toArray(), conversations: await db.chats.toArray() };
+                const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `aurora_backup.json`; a.click();
+            }
+
+            // --- SEARCH ---
+            setSearchMode(mode) {
+                this.state.searchMode = mode;
+                document.querySelectorAll('.search-opt').forEach(el => el.classList.remove('active'));
+                document.getElementById(`opt-${mode}`).classList.add('active');
+                if (this.state.query) this.runFilter();
+            }
+
+            runFilter() {
+                const q = this.state.query; const mode = this.state.searchMode;
+                this.visible = this.cache.filter(c => {
+                    if (q) {
+                        if (mode === 'title') return c.title.toLowerCase().includes(q);
+                        else return c.searchText ? c.searchText.includes(q) : c.title.toLowerCase().includes(q);
+                    }
+                    if (this.state.tab === 'trash') return c.status === 'trash';
+                    if (c.status === 'trash') return false;
+                    if (this.state.tab === 'archived') return c.status === 'archived';
+                    if (this.state.tab === 'folders') return false;
+                    if (this.state.tab === 'in-folder') return c.folder === this.state.activeFolder;
+                    return c.status === 'inbox' && !c.folder;
+                });
+                document.getElementById('total-badge').innerText = this.visible.length;
+                this.els.phantom.style.height = `${this.visible.length * this.config.rowH}px`;
+                this.renderVirtual();
+            }
+
+            // --- VIRTUAL RENDER ---
+            renderVirtual() {
+                const start = Math.max(0, Math.floor(this.els.vp.scrollTop / this.config.rowH) - this.config.buffer);
+                const end = Math.min(this.visible.length, Math.ceil((this.els.vp.scrollTop + this.els.vp.clientHeight) / this.config.rowH) + this.config.buffer);
+                this.els.content.innerHTML = '';
+
+                for (let i = start; i < end; i++) {
+                    const item = this.visible[i];
+                    const row = document.createElement('div');
+                    const isSel = this.selected.has(item.id);
+                    row.className = `row ${isSel ? 'selected' : ''}`;
+                    row.style.top = `${i * this.config.rowH}px`;
+                    row.dataset.id = item.id;
+
+                    let meta = `<span>${new Date(item.ts).toLocaleDateString()}</span>`;
+                    if (item.folder) meta = `<div class="tag"><i class="fas fa-folder"></i> ${item.folder}</div>` + meta;
+
+                    let snippet = '';
+                    if (this.state.query && this.state.searchMode === 'deep' && item.searchText) {
+                        const idx = item.searchText.indexOf(this.state.query);
+                        if (idx !== -1) {
+                            const txt = item.searchText.substring(Math.max(0, idx - 25), Math.min(item.searchText.length, idx + this.state.query.length + 40));
+                            snippet = `<div class="row-snippet visible">...${txt.replace(this.state.query, `<b>${this.state.query}</b>`)}...</div>`;
+                        }
+                    }
+
+                    row.innerHTML = `<div class="row-check"></div><div class="row-info"><div class="row-title">${item.title}</div><div class="row-meta">${meta}</div>${snippet}</div>`;
+
+                    let timer;
+                    const startPress = (e) => {
+                        timer = setTimeout(() => {
+                            this.isDragging = true;
+                            if (!this.state.selecting) this.toggleSelectionMode();
+                            if (!this.selected.has(item.id)) {
+                                this.toggleSelect(item.id);
+                                if (navigator.vibrate) navigator.vibrate(40);
+                            }
+                        }, 500);
+                    };
+
+                    row.onmousedown = row.ontouchstart = startPress;
+                    row.onmouseup = row.onmousemove = row.ontouchend = row.ontouchmove = () => clearTimeout(timer);
+                    row.onclick = () => { if (this.state.selecting) this.toggleSelect(item.id); else this.openChat(item); };
+
+                    this.els.content.appendChild(row);
+                }
+            }
+
+            // --- DRAG LOGIC ---
+            onMove(e) {
+                if (!this.isDragging) return;
+                const y = e.touches ? e.touches[0].clientY : e.clientY;
+                const x = e.touches ? e.touches[0].clientX : e.clientX;
+                const target = document.elementFromPoint(x, y);
+                const row = target?.closest('.row');
+
+                if (row && row.dataset.id) {
+                    const id = row.dataset.id;
+                    if (!this.selected.has(id)) {
+                        this.selected.add(id);
+                        row.classList.add('selected');
+                        document.getElementById('sel-count').innerText = this.selected.size;
+                        if (navigator.vibrate) navigator.vibrate(10);
+                    }
+                }
+            }
+            clearDrag() { this.isDragging = false; }
+
+            // --- SELECTION UI ---
+            toggleSelectionMode() {
+                this.state.selecting = !this.state.selecting;
+                document.body.classList.toggle('selecting', this.state.selecting);
+                document.getElementById('selection-header').classList.toggle('active', this.state.selecting);
+                document.querySelector('.nav-bar').style.transform = this.state.selecting ? 'translateY(100%)' : 'translateY(0)';
+                document.getElementById('bulk-bar').classList.toggle('visible', this.state.selecting);
+                if (this.state.selecting) this.renderBulkActions(); else { this.selected.clear(); document.getElementById('sel-count').innerText = 0; }
+                this.renderVirtual();
+            }
+
+            renderBulkActions() {
+                const bar = this.els.bulkBar; bar.innerHTML = '';
+                let acts = [];
+                if (this.state.tab === 'trash') acts = [{ icon: 'trash-restore', label: 'Restaurar', fn: () => this.executeBulk('inbox') }, { icon: 'ban', label: 'Apagar', danger: true, fn: () => this.executeBulk('delete') }];
+                else if (this.state.tab === 'archived') acts = [{ icon: 'box-open', label: 'Desarquivar', fn: () => this.executeBulk('inbox') }, { icon: 'trash', label: 'Lixo', danger: true, fn: () => this.executeBulk('trash') }];
+                else acts = [{ icon: 'folder', label: 'Mover', fn: () => this.openFolderModal() }, { icon: 'archive', label: 'Arquivar', fn: () => this.executeBulk('archived') }, { icon: 'trash', label: 'Lixo', danger: true, fn: () => this.executeBulk('trash') }];
+                acts.forEach(a => {
+                    const d = document.createElement('div'); d.className = `bulk-action ${a.danger ? 'danger' : ''}`;
+                    d.innerHTML = `<i class="fas fa-${a.icon}" style="font-size:18px"></i><span>${a.label}</span>`;
+                    d.onclick = a.fn; bar.appendChild(d);
+                });
+            }
+
+            async executeBulk(status, folder) {
+                const ids = Array.from(this.selected);
+                if (!ids.length) return this.showToast('Nada selecionado');
+                this.showToast("Processando...");
+                if (status === 'delete') await db.chats.bulkDelete(ids);
+                else {
+                    const update = { status };
+                    if (folder !== undefined) update.folder = folder;
+                    else if (status === 'inbox') update.folder = null;
+                    await db.chats.where('id').anyOf(ids).modify(update);
+                }
+                await this.reloadData(); this.toggleSelectionMode(); this.showToast("Concluído");
+            }
+
+            toggleSelect(id) { if (this.selected.has(id)) this.selected.delete(id); else this.selected.add(id); document.getElementById('sel-count').innerText = this.selected.size; this.renderVirtual(); }
+            selectAll() { this.visible.forEach(c => this.selected.add(c.id)); document.getElementById('sel-count').innerText = this.selected.size; this.renderVirtual(); }
+
+            // --- FOLDERS & MODALS ---
+            openFolderModal(single) {
+                if (single && this.state.currentChatId) { this.selected.clear(); this.selected.add(this.state.currentChatId); }
+                if (!this.selected.size) return this.showToast("Selecione itens");
+                const list = document.getElementById('modal-list'); list.innerHTML = '';
+                this.folderNames.forEach(name => {
+                    const d = document.createElement('div'); d.className = 'folder-opt';
+                    d.innerHTML = `<i class="fas fa-folder"></i> ${name}`;
+                    d.onclick = () => { this.executeBulk('inbox', name); document.getElementById('folder-modal').style.display = 'none'; };
+                    list.appendChild(d);
+                });
+                const inbox = document.createElement('div'); inbox.className = 'folder-opt'; inbox.style.color = '#888';
+                inbox.innerHTML = `<i class="fas fa-inbox"></i> Remover da Pasta`;
+                inbox.onclick = () => { this.executeBulk('inbox', null); document.getElementById('folder-modal').style.display = 'none'; };
+                list.appendChild(inbox);
+                document.getElementById('folder-modal').style.display = 'flex';
+            }
+
+            openCreateFolderModal() { document.getElementById('folder-modal').style.display = 'none'; document.getElementById('new-folder-modal').style.display = 'flex'; setTimeout(() => document.getElementById('new-folder-input').focus(), 100); }
+            async confirmCreateFolder() {
+                const name = document.getElementById('new-folder-input').value.trim();
+                if (name) {
+                    if ((await db.folders.where('name').equals(name).count()) === 0) {
+                        await db.folders.add({ name }); await this.reloadData();
+                        document.getElementById('new-folder-input').value = ''; document.getElementById('new-folder-modal').style.display = 'none';
+                        this.openFolderModal(); if (this.state.tab === 'folders') this.renderFoldersGrid();
+                        this.showToast("Pasta Criada!");
+                    } else this.showToast("Pasta já existe");
+                }
+            }
+
+            openDeleteFolderModal(name) { this.state.folderToDelete = name; document.getElementById('delete-folder-modal').style.display = 'flex'; }
+            async confirmDeleteFolder(action) {
+                const name = this.state.folderToDelete; if (!name) return;
+                if (action === 'trash') await db.chats.where('folder').equals(name).modify({ folder: null, status: 'trash' });
+                else await db.chats.where('folder').equals(name).modify({ folder: null, status: 'inbox' });
+                await db.folders.where('name').equals(name).delete();
+                document.getElementById('delete-folder-modal').style.display = 'none'; await this.reloadData(); this.renderFoldersGrid(); this.showToast('Pasta apagada');
+            }
+
+            // --- CHAT WITH LAZY FETCHING ---
+            async openChat(item) {
+                this.state.currentChatId = item.id; document.getElementById('chat-title').innerText = item.title;
+                const body = document.getElementById('chat-body'); body.innerHTML = '<div class="spinner" style="margin:50px auto"></div>';
+                document.getElementById('chat-sheet').classList.add('open');
+
+                // Fetch RAW content on demand
+                const fullItem = await db.chats.get(item.id);
+                body.innerHTML = '';
+
+                let msgs = [];
+                const raw = fullItem.raw || fullItem;
+                if (raw.mapping) msgs = Object.values(raw.mapping).filter(n => n.message?.content?.parts?.[0]).map(n => ({ role: n.message.author.role, text: n.message.content.parts.join('\n'), ts: n.message.create_time })).sort((a, b) => a.ts - b.ts);
+
+                if (msgs.length === 0) body.innerHTML = '<div style="padding:20px;text-align:center;color:#666">Vazio</div>';
+
+                const PAGE_SIZE = 20;
+                let currentIdx = Math.max(0, msgs.length - PAGE_SIZE);
+
+                const renderBatch = (start, end) => {
+                    const frag = document.createDocumentFragment();
+                    msgs.slice(start, end).forEach(m => {
+                        if (m.role !== 'user' && m.role !== 'assistant') return;
+                        const d = document.createElement('div'); d.className = `msg ${m.role === 'user' ? 'user' : 'model'}`;
+                        if (typeof marked !== 'undefined') d.innerHTML = marked.parse(m.text, { breaks: true, gfm: true });
+                        else d.innerText = m.text;
+                        frag.appendChild(d);
+                    });
+                    return frag;
+                };
+
+                if (currentIdx > 0) {
+                    const btn = document.createElement('div'); btn.className = 'load-more-btn';
+                    btn.innerText = `Carregar anteriores (${currentIdx})`;
+                    btn.onclick = () => {
+                        const newStart = Math.max(0, currentIdx - PAGE_SIZE);
+                        const block = renderBatch(newStart, currentIdx);
+                        btn.after(block); currentIdx = newStart;
+                        if (currentIdx === 0) btn.remove(); else btn.innerText = `Carregar anteriores (${currentIdx})`;
+                    };
+                    body.appendChild(btn);
+                }
+                body.appendChild(renderBatch(currentIdx, msgs.length));
+                setTimeout(() => body.scrollTop = body.scrollHeight, 10);
+            }
+
+            closeChat() { document.getElementById('chat-sheet').classList.remove('open'); }
+            triggerCurrentChatActions() { this.selected.clear(); this.selected.add(this.state.currentChatId); this.toggleSelectionMode(); this.closeChat(); }
+
+            switchTab(t) {
+                this.state.tab = t; this.state.activeFolder = null; if (this.state.selecting) this.toggleSelectionMode();
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); document.getElementById(`tab-${t}`).classList.add('active');
+                if (t === 'folders') { document.getElementById('virtual-viewport').classList.remove('active'); document.getElementById('folder-viewport').classList.add('active'); this.renderFoldersGrid(); }
+                else { document.getElementById('folder-viewport').classList.remove('active'); document.getElementById('virtual-viewport').classList.add('active'); this.runFilter(); }
+            }
+
+            renderFoldersGrid() {
+                const vp = document.getElementById('folder-viewport'); vp.innerHTML = '';
+                const grid = document.createElement('div'); grid.className = 'folder-grid';
+                const counts = {}; this.cache.forEach(c => { if (c.folder && c.status !== 'trash') counts[c.folder] = (counts[c.folder] || 0) + 1; });
+                this.folderNames.forEach(name => {
+                    const card = document.createElement('div'); card.className = 'folder-card';
+                    card.innerHTML = `<div style="font-weight:600;font-size:15px;display:flex;gap:10px;align-items:center"><i class="fas fa-folder" style="color:var(--accent)"></i> ${name}</div><div style="font-size:11px;color:#555">${counts[name] || 0} chats</div><i class="fas fa-trash-alt folder-delete"></i>`;
+                    card.querySelector('.folder-delete').onclick = (e) => { e.stopPropagation(); this.openDeleteFolderModal(name); };
+                    card.onclick = () => { this.state.activeFolder = name; this.state.tab = 'in-folder'; document.getElementById('folder-viewport').classList.remove('active'); document.getElementById('virtual-viewport').classList.add('active'); this.runFilter(); };
+                    grid.appendChild(card);
+                });
+                const add = document.createElement('div'); add.className = 'folder-card'; add.style.borderStyle = 'dashed'; add.style.justifyContent = 'center'; add.style.alignItems = 'center';
+                add.innerHTML = '<span style="color:var(--accent);font-weight:700">+ Nova Pasta</span>';
+                add.onclick = () => { document.getElementById('new-folder-modal').style.display = 'flex'; document.getElementById('new-folder-input').focus(); };
+                grid.appendChild(add); vp.appendChild(grid);
+            }
+
+            async resetDB() { if (confirm('Apagar tudo?')) { await db.delete(); location.reload(); } }
+            showToast(m) { this.els.toast.innerHTML = `<i class="fas fa-check"></i> <span>${m}</span>`; this.els.toast.classList.add('show'); setTimeout(() => this.els.toast.classList.remove('show'), 2000); }
+        }
+        const app = new AuroraApp();
+    </script>
+</body>
+
+</html>

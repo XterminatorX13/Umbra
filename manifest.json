@@ -1,0 +1,18 @@
+{
+    "name": "ChatGPT PKM 2.0",
+    "short_name": "PKM",
+    "description": "Sistema de gerenciamento de conhecimento para ChatGPT",
+    "start_url": "./chatgpt-pkm-standalone.html",
+    "display": "standalone",
+    "background_color": "#000000",
+    "theme_color": "#D96FFF",
+    "orientation": "any",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23D96FFF' width='100' height='100' rx='20'/%3E%3Ctext x='50' y='70' font-size='60' text-anchor='middle' fill='%23000'%3E💬%3C/text%3E%3C/svg%3E",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}

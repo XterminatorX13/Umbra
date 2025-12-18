@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ----------------------------------------------------------
+   VARIÁVEIS DE TEMA — DARK AURORA
+---------------------------------------------------------- */
+:root {
+  --bg-main: #000000;
+  --bg-deep: #0A010D;
+  --bg-panel: #0C0210;
+  --bg-panel-2: #110015;
+
+  --color-text-primary: #E5E5E5;
+  --color-text-secondary: #A0A0A0;
+
+  --highlight: #D96FFF;
+  --accent-1: #3B0E4F;
+  --accent-2: #4F1366;
+
+  --layer-1: #0A0A0A;
+  --layer-2: #141414;
+  --layer-3: #1F1F1F;
+
+  --border: #2A2A2A;
+  --border-light: #3A3A3A;
+
+  --radius: 8px;
+  --radius-small: 5px;
+}
+
+* {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-2) var(--bg-main);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-main);
+  color: var(--color-text-primary);
+  font-family: "Inter", system-ui, sans-serif;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--highlight);
+}
+
+a {
+  color: var(--highlight);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
