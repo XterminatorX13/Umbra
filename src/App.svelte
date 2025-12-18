@@ -225,7 +225,8 @@
         activeId = null;
         showWelcome = true;
         localStorage.removeItem("auto-saved-conversations");
-        localStorage.setItem(METADATA_FILENAME, "{}");
+        // Clear IndexedDB metadata (use db.js function)
+        saveAllMetadata({});
     }
 
     // Global hotkeys
@@ -413,7 +414,6 @@
 <!-- Command Palette (Ctrl+K) -->
 <CommandPalette
     conversations={allConversations}
-    {metadata}
     on:select={handleSelect}
     on:action={(e) => {
         const action = e.detail.action;

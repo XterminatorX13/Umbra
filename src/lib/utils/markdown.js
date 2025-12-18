@@ -13,6 +13,7 @@ import java from 'highlight.js/lib/languages/java';
 import csharp from 'highlight.js/lib/languages/csharp';
 import yaml from 'highlight.js/lib/languages/yaml';
 import diff from 'highlight.js/lib/languages/diff';
+import plaintext from 'highlight.js/lib/languages/plaintext';
 
 hljs.registerLanguage('javascript', javascript);
 hljs.registerLanguage('python', python);
@@ -26,6 +27,7 @@ hljs.registerLanguage('java', java);
 hljs.registerLanguage('csharp', csharp);
 hljs.registerLanguage('yaml', yaml);
 hljs.registerLanguage('diff', diff);
+hljs.registerLanguage('plaintext', plaintext);
 import markedKatex from 'marked-katex-extension';
 
 /**
