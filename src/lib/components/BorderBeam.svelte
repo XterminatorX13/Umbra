@@ -34,55 +34,55 @@
     .border-beam {
         position: absolute;
         inset: 0;
-        /* Create a gradient that travels */
-        background: linear-gradient(
-            90deg,
-            transparent,
-            var(--color-from),
-            var(--color-via),
-            var(--color-to),
-            transparent
+        /* Aurora Gradient - Static but beautiful */
+        background: radial-gradient(
+            circle at 50% 50%,
+            rgba(157, 78, 221, 0.4),
+            transparent 70%
         );
-        width: var(--size);
+        width: 100%;
         height: 100%;
         opacity: 0;
-        animation: beam-travel var(--duration) ease-in-out infinite;
-        animation-delay: var(--delay);
+        transition: opacity 0.6s ease;
         pointer-events: none;
         border-radius: inherit;
+        z-index: 1;
 
-        /* Blur for glow effect */
-        filter: blur(8px);
+        /* Subtle blur for refined glow */
+        filter: blur(12px);
     }
 
-    /* Hover state - make beam visible */
+    /* Hover state - Reveal the aurora */
     .border-beam-container:hover .border-beam {
         opacity: 1;
+        animation: aurora-pulse 4s ease-in-out infinite;
     }
 
-    @keyframes beam-travel {
-        0% {
-            transform: translateX(-100%);
-            opacity: 0;
-        }
-        10% {
-            opacity: 1;
-        }
-        90% {
-            opacity: 1;
-        }
+    @keyframes aurora-pulse {
+        0%,
         100% {
-            transform: translateX(calc(100vw));
-            opacity: 0;
+            opacity: 0.6;
+            transform: scale(0.95);
+        }
+        50% {
+            opacity: 0.8;
+            transform: scale(1.05);
         }
     }
 
-    /* Mask to only show on borders */
-    .border-beam::before {
+    /* Delicate border line */
+    .border-beam-container::after {
         content: "";
         position: absolute;
-        inset: 1px;
-        background: transparent;
+        inset: 0;
         border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: border-color 0.3s ease;
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    .border-beam-container:hover::after {
+        border-color: rgba(157, 78, 221, 0.3);
     }
 </style>

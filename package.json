@@ -39,7 +39,8 @@
     "katex": "^0.16.27",
     "marked": "^11.1.0",
     "marked-highlight": "^2.2.3",
-    "marked-katex-extension": "^5.1.6"
+    "marked-katex-extension": "^5.1.6",
+    "tailwind": "^4.0.0"
   },
   "build": {
     "appId": "com.chatgpt-pkm.app",

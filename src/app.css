@@ -3,53 +3,63 @@
 @tailwind utilities;
 
 /* ===========================================================
-   ULTRA PREMIUM DESIGN SYSTEM - MAC STYLE
+   ULTRA PREMIUM DESIGN SYSTEM - DARK AURORA
 =========================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Background Layers - Midnight Elegance */
-  --bg-deep: #0a0a0f;
-  --bg-main: #12121a;
-  --bg-panel: #1a1a24;
-  
+  /* Background Layers - Midnight Aurora */
+  --bg-deep: #050508;
+  /* Almost pitch black */
+  --bg-main: #0B0A12;
+  /* Dark violet-black */
+  --bg-panel: #13111C;
+  /* Deep purple panel */
+
   /* Surface Layers */
-  --layer-1: #1e1e2e;
-  --layer-2: #252538;
-  --layer-3: #2d2d42;
-  
+  --layer-1: #181524;
+  /* Level 1 Card */
+  --layer-2: #201C2E;
+  /* Level 2 Card */
+  --layer-3: #2A2438;
+  /* Level 3 Card */
+
   /* Typography */
-  --color-text-primary: #f5f5f7;
-  --color-text-secondary: #a0a0ab;
-  --color-text-tertiary: #6e6e73;
-  
-  /* Accent Colors */
-  --accent-1: #8b5cf6;          /* Purple */
-  --accent-2: #d946ef;          /* Pink */
-  --highlight: #d96fff;         /* Bright pink */
-  
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #d96fff 100%);
-  --gradient-subtle: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(217, 111, 255, 0.05));
-  --gradient-border: linear-gradient(90deg, transparent, var(--highlight), transparent);
-  
-  /* Borders */
-  --border: rgba(255, 255, 255, 0.08);
-  --border-light: rgba(255, 255, 255, 0.12);
-  --border-focus: rgba(217, 111, 255, 0.3);
-  
+  --color-text-primary: #ECECF2;
+  --color-text-secondary: #9494A8;
+  --color-text-tertiary: #63637E;
+
+  /* Accent Colors - Refined Aurora */
+  --accent-1: #5e3a8c;
+  /* Deep Regal Purple */
+  --accent-2: #9d4edd;
+  /* Vivid Purple */
+  --highlight: #c77dff;
+  /* Soft Lavender Glow (less pink) */
+
+  /* Gradients - Subtle & Slow */
+  --gradient-primary: linear-gradient(135deg, #5e3a8c 0%, #9d4edd 100%);
+  --gradient-subtle: linear-gradient(135deg, rgba(94, 58, 140, 0.08), rgba(157, 78, 221, 0.04));
+  --gradient-border: linear-gradient(90deg, transparent, rgba(199, 125, 255, 0.4), transparent);
+
+  /* Borders - Barely There */
+  --border: rgba(255, 255, 255, 0.04);
+  --border-light: rgba(255, 255, 255, 0.07);
+  --border-focus: rgba(157, 78, 221, 0.3);
+
   /* Radius */
   --radius: 12px;
   --radius-small: 6px;
   --radius-large: 16px;
-  
-  /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(217, 111, 255, 0.3);
-  
+
+  /* Shadows - Deep & Atmospheric */
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 16px rgba(157, 78, 221, 0.1);
+  --shadow-glow-hover: 0 0 24px rgba(157, 78, 221, 0.15);
+
   /* Typography Scale */
   --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
   --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Fira Code', monospace;
@@ -115,7 +125,12 @@ body {
    TYPOGRAPHY
 =========================================================== */
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 600;
   line-height: 1.2;
   margin: 0;
@@ -146,13 +161,22 @@ kbd {
    TRANSITIONS & ANIMATIONS
 =========================================================== */
 
-button, input, textarea, select, a {
+button,
+input,
+textarea,
+select,
+a {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
@@ -160,6 +184,7 @@ button, input, textarea, select, a {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

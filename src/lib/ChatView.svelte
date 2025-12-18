@@ -130,10 +130,7 @@
   }
 
   function changeFontSize(delta) {
-    fontSize = Math.max(
-      10,
-      Math.min(20, parseInt(fontSize) + delta),
-    ).toString();
+    fontSize = Math.max(8, Math.min(24, parseInt(fontSize) + delta)).toString();
     localStorage.setItem("chat-font-size", fontSize);
   }
 
