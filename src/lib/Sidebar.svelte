@@ -2,6 +2,7 @@
     import { createEventDispatcher, onMount, onDestroy } from "svelte";
     import { getConvKey } from "./utils";
     import CategoryDropdown from "./components/CategoryDropdown.svelte";
+    import InputModal from "./components/InputModal.svelte";
 
     export let conversations = [];
     export let metadata = {};
@@ -18,6 +19,16 @@
     };
     let showingStats = false;
     let searchTerm = "";
+
+    // Modal state for folder management
+    let modalOpen = false;
+    let modalTitle = "";
+    let modalPlaceholder = "";
+    let modalDefault = "";
+    let modalStep = ""; // 'newFolderName', 'newFolderIcon', 'newFolderColor', 'editIcon', 'editColor'
+    let pendingFolderName = "";
+    let pendingFolderIcon = "";
+    let editingFolderName = "";
 
     // Folder metadata (icons & colors)
     const FOLDER_META_KEY = "pkm_folder_meta_v1";
@@ -103,36 +114,71 @@
     }
 
     function createNewFolder() {
-        const name = prompt("Nome da nova pasta:", "");
-        if (!name?.trim()) return;
-        const trimmed = name.trim();
+        modalStep = "newFolderName";
+        modalTitle = "Nome da nova pasta";
+        modalPlaceholder = "Ex.: Trabalho";
+        modalDefault = "";
+        modalOpen = true;
+    }
 
-        const icon = prompt(`Ícone para "${trimmed}" (emoji):`, "📁") || "📁";
-        const color =
-            prompt(`Cor em hex para "${trimmed}":`, randomFolderColor()) ||
-            randomFolderColor();
+    function handleModalSubmit(event) {
+        const value = event.detail.value;
 
-        folderMeta[trimmed] = { icon, color };
-        folderMeta = { ...folderMeta };
-        saveFolderMeta();
+        if (modalStep === "newFolderName") {
+            if (!value) return;
+            pendingFolderName = value;
+            modalStep = "newFolderIcon";
+            modalTitle = `Ícone para "${value}" (emoji)`;
+            modalDefault = "📁";
+            modalPlaceholder = "📁 ou outro emoji";
+            modalOpen = true;
+        } else if (modalStep === "newFolderIcon") {
+            pendingFolderIcon = value || "📁";
+            modalStep = "newFolderColor";
+            modalTitle = `Cor para "${pendingFolderName}"`;
+            modalDefault = randomFolderColor();
+            modalPlaceholder = "#hex ou nome";
+            modalOpen = true;
+        } else if (modalStep === "newFolderColor") {
+            const color = value || randomFolderColor();
+            folderMeta[pendingFolderName] = { icon: pendingFolderIcon, color };
+            folderMeta = { ...folderMeta };
+            saveFolderMeta();
+            pendingFolderName = "";
+            pendingFolderIcon = "";
+        } else if (modalStep === "editIcon") {
+            if (value !== null) {
+                folderMeta[editingFolderName] = {
+                    ...getFolderMeta(editingFolderName),
+                    icon: value || "📁",
+                };
+            }
+            modalStep = "editColor";
+            modalTitle = `Cor para "${editingFolderName}"`;
+            modalDefault = getFolderMeta(editingFolderName).color || "#4F1366";
+            modalPlaceholder = "#hex";
+            modalOpen = true;
+        } else if (modalStep === "editColor") {
+            if (value !== null) {
+                folderMeta[editingFolderName] = {
+                    ...getFolderMeta(editingFolderName),
+                    color: value || "#4F1366",
+                };
+                folderMeta = { ...folderMeta };
+                saveFolderMeta();
+            }
+            editingFolderName = "";
+        }
     }
 
     function editFolderSettings(name) {
+        editingFolderName = name;
         const current = getFolderMeta(name);
-        const icon = prompt(
-            `Ícone para a pasta "${name}":`,
-            current.icon || "📁",
-        );
-        if (icon === null) return;
-        const color = prompt(
-            `Cor em hex para a pasta "${name}":`,
-            current.color || "#4F1366",
-        );
-        if (color === null) return;
-
-        folderMeta[name] = { icon, color };
-        folderMeta = { ...folderMeta };
-        saveFolderMeta();
+        modalStep = "editIcon";
+        modalTitle = `Ícone para "${name}"`;
+        modalDefault = current.icon || "📁";
+        modalPlaceholder = "emoji";
+        modalOpen = true;
     }
 
     function deleteFolder(name) {
@@ -438,6 +484,15 @@
         </div>
     </div>
 </aside>
+
+<!-- Folder Input Modal -->
+<InputModal
+    bind:isOpen={modalOpen}
+    title={modalTitle}
+    placeholder={modalPlaceholder}
+    defaultValue={modalDefault}
+    on:submit={handleModalSubmit}
+/>
 
 <style>
     /* Remove focus outline from scroll container (keyboard nav is handled) */
