@@ -369,10 +369,7 @@
         <div
             style="background: var(--bg-panel); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;"
         >
-            <label
-                for="main-file-input"
-                style="padding: 6px 12px; font-size: 12px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-2); color: var(--color-text-primary); cursor: pointer; transition: all 0.2s;"
-            >
+            <label for="main-file-input" class="label-btn">
                 📁 Adicionar Arquivos
             </label>
             <input

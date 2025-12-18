@@ -360,3 +360,147 @@ a {
   max-width: 100%;
   border-radius: var(--radius);
 }
+
+/* ===========================================================
+   PREMIUM BUTTONS - UMBRA PURPUREA EDITION
+=========================================================== */
+
+/* Premium Pill Button - Compact & Elegant */
+.btn-premium {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  border-radius: 999px;
+  border: 1px solid var(--border-light);
+  background: var(--layer-2);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.btn-premium:hover {
+  background: var(--layer-3);
+  border-color: rgba(157, 78, 221, 0.4);
+  color: var(--color-text-primary);
+  box-shadow: 0 0 20px rgba(157, 78, 221, 0.25), 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-premium:active {
+  transform: translateY(0);
+  box-shadow: 0 0 12px rgba(157, 78, 221, 0.2);
+}
+
+/* Premium Active State */
+.btn-premium.active {
+  background: var(--accent-1);
+  border-color: var(--highlight);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(157, 78, 221, 0.3);
+}
+
+/* Premium Glow Button - For CTAs */
+.btn-glow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-small);
+  border: 1px solid rgba(157, 78, 221, 0.3);
+  background: linear-gradient(135deg, rgba(94, 58, 140, 0.2) 0%, rgba(157, 78, 221, 0.1) 100%);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-glow:hover {
+  border-color: var(--highlight);
+  background: linear-gradient(135deg, rgba(94, 58, 140, 0.35) 0%, rgba(157, 78, 221, 0.2) 100%);
+  box-shadow:
+    0 0 24px rgba(157, 78, 221, 0.35),
+    0 0 48px rgba(157, 78, 221, 0.15),
+    0 8px 24px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-glow:active {
+  transform: translateY(0);
+}
+
+/* Search Mode Pills - Minimal & Compact */
+.search-toggle {
+  display: flex;
+  gap: 3px;
+  padding: 2px;
+  background: var(--layer-1);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.search-toggle-btn {
+  flex: 1;
+  padding: 3px 8px;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.search-toggle-btn:hover {
+  color: var(--color-text-secondary);
+  background: var(--layer-2);
+}
+
+.search-toggle-btn.active {
+  background: var(--accent-1);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(157, 78, 221, 0.3);
+}
+
+/* Danger Button Variant */
+.btn-danger {
+  border-color: rgba(255, 100, 100, 0.3);
+}
+
+.btn-danger:hover {
+  border-color: rgba(255, 100, 100, 0.6);
+  box-shadow: 0 0 20px rgba(255, 100, 100, 0.25), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Label Button (File Input) */
+.label-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--border-light);
+  background: var(--layer-2);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.label-btn:hover {
+  border-color: rgba(157, 78, 221, 0.4);
+  box-shadow:
+    0 0 16px rgba(157, 78, 221, 0.25),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}

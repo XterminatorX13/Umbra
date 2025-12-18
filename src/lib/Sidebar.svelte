@@ -398,14 +398,15 @@
                 <button
                     on:click={createNewFolder}
                     title="Nova pasta (Ctrl+Shift+N)"
-                    style="background: var(--layer-2); border: 1px solid var(--border-light); border-radius: 999px; font-size: 11px; padding: 4px 10px; color: var(--color-text-secondary); cursor: pointer; transition: all 0.2s;"
+                    class="btn-premium"
                 >
                     + Pasta
                 </button>
                 <button
                     on:click={() => (showingStats = !showingStats)}
                     title="Estatísticas (Ctrl+Shift+S)"
-                    style="background: var(--layer-2); border: 1px solid var(--border-light); border-radius: 999px; font-size: 11px; padding: 4px 8px; color: var(--color-text-secondary); cursor: pointer; transition: all 0.2s;"
+                    class="btn-premium"
+                    class:active={showingStats}
                 >
                     📊
                 </button>
@@ -423,34 +424,20 @@
         />
 
         <!-- Search mode toggle -->
-        <div style="display: flex; gap: 4px; margin-top: 6px;">
+        <div class="search-toggle" style="margin-top: 6px;">
             <button
                 on:click={() => (searchMode = "title")}
-                style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid {searchMode ===
-                'title'
-                    ? 'var(--highlight)'
-                    : 'var(--border-light)'}; background: {searchMode ===
-                'title'
-                    ? 'var(--accent-1)'
-                    : 'var(--layer-2)'}; color: {searchMode === 'title'
-                    ? '#fff'
-                    : 'var(--color-text-secondary)'}; cursor: pointer; transition: all 0.2s;"
+                class="search-toggle-btn"
+                class:active={searchMode === "title"}
             >
-                📝 Título
+                Título
             </button>
             <button
                 on:click={() => (searchMode = "content")}
-                style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid {searchMode ===
-                'content'
-                    ? 'var(--highlight)'
-                    : 'var(--border-light)'}; background: {searchMode ===
-                'content'
-                    ? 'var(--accent-1)'
-                    : 'var(--layer-2)'}; color: {searchMode === 'content'
-                    ? '#fff'
-                    : 'var(--color-text-secondary)'}; cursor: pointer; transition: all 0.2s;"
+                class="search-toggle-btn"
+                class:active={searchMode === "content"}
             >
-                🔍 Conteúdo
+                Conteúdo
             </button>
         </div>
 
