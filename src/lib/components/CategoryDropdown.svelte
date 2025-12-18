@@ -1,6 +1,7 @@
 <script>
     import { createEventDispatcher } from "svelte";
     import { getConvKey } from "../utils.js";
+    import BorderBeam from "./BorderBeam.svelte";
 
     export let title = "";
     export let icon = "📁";
@@ -23,27 +24,17 @@
 </script>
 
 <div style="margin: 4px 8px;">
-    <!-- Header com toggle -->
+    <!-- Header com toggle + BorderBeam animation -->
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div
-        on:click={toggle}
-        style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; background: var(--layer-2); border-radius: var(--radius-small); border: 1px solid var(--border-light); transition: all 0.2s;"
-    >
-        <span
-            style="font-size: 11px; color: var(--color-text-secondary); width: 12px;"
-            >{isOpen ? "▼" : "▶"}</span
-        >
-        <span style="font-size: 14px;">{icon}</span>
-        <span
-            style="font-size: 13px; color: var(--color-text-primary); flex: 1;"
-            >{title}</span
-        >
-        <span
-            style="font-size: 11px; padding: 2px 8px; background: var(--bg-deep); border-radius: 10px; color: var(--color-text-secondary);"
-            >{conversations.length}</span
-        >
-    </div>
+    <BorderBeam duration={2.5} size={150}>
+        <div on:click={toggle} class="category-header" class:is-open={isOpen}>
+            <span class="chevron">{isOpen ? "▼" : "▶"}</span>
+            <span class="icon">{icon}</span>
+            <span class="title">{title}</span>
+            <span class="count">{conversations.length}</span>
+        </div>
+    </BorderBeam>
 
     <!-- Lista de conversas -->
     {#if isOpen && conversations.length > 0}
@@ -100,8 +91,71 @@
 </div>
 
 <style>
+    /* Premium Category Header */
+    .category-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        cursor: pointer;
+        background: linear-gradient(135deg, var(--layer-2), var(--layer-1));
+        border-radius: var(--radius-small);
+        border: 1px solid var(--border-light);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .category-header:hover {
+        background: linear-gradient(135deg, var(--layer-3), var(--layer-2));
+        border-color: var(--border-focus);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .category-header .chevron {
+        font-size: 10px;
+        color: var(--color-text-secondary);
+        width: 14px;
+        transition: transform 0.3s ease;
+    }
+
+    .category-header.is-open .chevron {
+        transform: rotate(0deg);
+    }
+
+    .category-header .icon {
+        font-size: 16px;
+    }
+
+    .category-header .title {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--color-text-primary);
+        flex: 1;
+    }
+
+    .category-header .count {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 10px;
+        background: var(--bg-deep);
+        border-radius: 12px;
+        color: var(--color-text-secondary);
+    }
+
+    /* Conversation Row */
+    .conv-row {
+        padding: 8px 12px;
+        margin: 4px 0;
+        cursor: pointer;
+        background: var(--bg-deep);
+        border-radius: var(--radius-small);
+        border: 1px solid transparent;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
     .conv-row:hover {
-        transform: translateX(3px);
-        border-color: var(--highlight) !important;
+        background: var(--layer-1);
+        border-color: var(--border-light);
+        transform: translateX(4px);
     }
 </style>
