@@ -19,6 +19,8 @@
     };
     let showingStats = false;
     let searchTerm = "";
+    let searchMode = "title"; // 'title' or 'content'
+    let searchResults = []; // Stores { conversation, snippet } pairs for content search
 
     // Modal state for folder management
     let modalOpen = false;
@@ -79,21 +81,100 @@
     $: folders = Array.from(foldersSet).sort();
 
     // Filtered conversations with search
-    $: filtered = conversations.filter((c) => {
-        const key = getConvKey(c);
-        const meta = metadata[key] ?? {};
-        if (meta.deleted) return false;
-
-        if (activeFolder === "__ALL__") {
-            if (searchTerm) {
-                const q = searchTerm.toLowerCase();
-                return (c.title || "").toLowerCase().includes(q);
-            }
-            return true;
+    $: filtered = (() => {
+        // If content search and we have search results, use them
+        if (
+            searchMode === "content" &&
+            searchTerm &&
+            searchResults.length > 0
+        ) {
+            return searchResults.map((r) => r.conversation);
         }
-        if (activeFolder === "__FAV__") return !!meta.favorite;
-        return meta.folder === activeFolder;
-    });
+
+        // Standard title-based filtering
+        return conversations.filter((c) => {
+            const key = getConvKey(c);
+            const meta = metadata[key] ?? {};
+            if (meta.deleted) return false;
+
+            if (activeFolder === "__ALL__") {
+                if (searchTerm && searchMode === "title") {
+                    const q = searchTerm.toLowerCase();
+                    return (c.title || "").toLowerCase().includes(q);
+                }
+                return true;
+            }
+            if (activeFolder === "__FAV__") return !!meta.favorite;
+            return meta.folder === activeFolder;
+        });
+    })();
+
+    // Get snippet for a conversation (used in content search)
+    function getSnippetForConv(convId) {
+        const result = searchResults.find(
+            (r) => getConvKey(r.conversation) === convId,
+        );
+        return result?.snippet || null;
+    }
+
+    // Deep search in message content
+    function performDeepSearch(query) {
+        if (!query || query.length < 2) {
+            searchResults = [];
+            return;
+        }
+
+        const q = query.toLowerCase();
+        const results = [];
+
+        for (const conv of conversations) {
+            const key = getConvKey(conv);
+            const meta = metadata[key] ?? {};
+            if (meta.deleted) continue;
+
+            // Search through messages
+            const messages = conv.messages || [];
+            for (const msg of messages) {
+                const text = msg.textPlain || msg.textMarkdown || "";
+                const lowerText = text.toLowerCase();
+                const idx = lowerText.indexOf(q);
+
+                if (idx !== -1) {
+                    // Extract snippet (40 chars before, 60 chars after)
+                    const start = Math.max(0, idx - 40);
+                    const end = Math.min(text.length, idx + query.length + 60);
+                    let snippet = text.slice(start, end);
+
+                    // Add ellipsis
+                    if (start > 0) snippet = "..." + snippet;
+                    if (end < text.length) snippet = snippet + "...";
+
+                    results.push({
+                        conversation: conv,
+                        snippet,
+                        matchIndex: idx,
+                    });
+                    break; // Only need first match per conversation
+                }
+            }
+        }
+
+        searchResults = results;
+    }
+
+    // Debounced deep search
+    let searchTimeout = null;
+    $: {
+        if (searchMode === "content" && searchTerm) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(
+                () => performDeepSearch(searchTerm),
+                300,
+            );
+        } else {
+            searchResults = [];
+        }
+    }
 
     // Stats
     $: stats = {
@@ -335,9 +416,54 @@
         <input
             type="text"
             bind:value={searchTerm}
-            placeholder="Busca rápida..."
+            placeholder={searchMode === "title"
+                ? "Buscar por título..."
+                : "Buscar no conteúdo..."}
             style="width: 100%; padding: 6px 8px; font-size: 12px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-1); color: var(--color-text-primary);"
         />
+
+        <!-- Search mode toggle -->
+        <div style="display: flex; gap: 4px; margin-top: 6px;">
+            <button
+                on:click={() => (searchMode = "title")}
+                style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid {searchMode ===
+                'title'
+                    ? 'var(--highlight)'
+                    : 'var(--border-light)'}; background: {searchMode ===
+                'title'
+                    ? 'var(--accent-1)'
+                    : 'var(--layer-2)'}; color: {searchMode === 'title'
+                    ? '#fff'
+                    : 'var(--color-text-secondary)'}; cursor: pointer; transition: all 0.2s;"
+            >
+                📝 Título
+            </button>
+            <button
+                on:click={() => (searchMode = "content")}
+                style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid {searchMode ===
+                'content'
+                    ? 'var(--highlight)'
+                    : 'var(--border-light)'}; background: {searchMode ===
+                'content'
+                    ? 'var(--accent-1)'
+                    : 'var(--layer-2)'}; color: {searchMode === 'content'
+                    ? '#fff'
+                    : 'var(--color-text-secondary)'}; cursor: pointer; transition: all 0.2s;"
+            >
+                🔍 Conteúdo
+            </button>
+        </div>
+
+        <!-- Search results count -->
+        {#if searchTerm && searchMode === "content"}
+            <div
+                style="font-size: 10px; color: var(--color-text-tertiary); margin-top: 4px;"
+            >
+                {searchResults.length} resultado{searchResults.length !== 1
+                    ? "s"
+                    : ""} encontrado{searchResults.length !== 1 ? "s" : ""}
+            </div>
+        {/if}
     </div>
 
     <!-- Stats Panel -->
@@ -401,12 +527,18 @@
                     <CategoryDropdown
                         title="Todas"
                         icon="📚"
-                        conversations={conversations.filter(
-                            (c) => !metadata[getConvKey(c)]?.deleted,
-                        )}
+                        conversations={searchMode === "content" && searchTerm
+                            ? filtered
+                            : conversations.filter(
+                                  (c) => !metadata[getConvKey(c)]?.deleted,
+                              )}
                         {metadata}
                         {activeId}
                         defaultOpen={true}
+                        getSnippet={searchMode === "content"
+                            ? getSnippetForConv
+                            : null}
+                        {searchTerm}
                         on:select
                     />
 
@@ -419,6 +551,10 @@
                         )}
                         {metadata}
                         {activeId}
+                        getSnippet={searchMode === "content"
+                            ? getSnippetForConv
+                            : null}
+                        {searchTerm}
                         on:select
                     />
                 </div>

@@ -9,6 +9,8 @@
     export let metadata = {};
     export let activeId = null;
     export let defaultOpen = false;
+    export let getSnippet = null; // Function to get search snippet for a conversation
+    export let searchTerm = ""; // Current search term for highlighting
 
     const dispatch = createEventDispatcher();
 
@@ -32,6 +34,17 @@
 
     // Reset limit when category changes or closes
     $: if (!isOpen) renderLimit = 50;
+
+    // Highlight search term in snippet
+    function highlightSnippet(text, term) {
+        if (!term || !text) return text;
+        const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regex = new RegExp(`(${escaped})`, "gi");
+        return text.replace(
+            regex,
+            '<mark style="background: var(--highlight); color: #fff; padding: 0 2px; border-radius: 2px;">$1</mark>',
+        );
+    }
 </script>
 
 <div style="margin: 4px 8px;">
@@ -93,6 +106,16 @@
                             >{/if}
                         {#if meta.folder}<span>📁 {meta.folder}</span>{/if}
                     </div>
+                    {#if getSnippet}
+                        {@const snippet = getSnippet(key)}
+                        {#if snippet}
+                            <div
+                                style="font-size: 9px; color: var(--color-text-tertiary); margin-top: 4px; padding: 4px 6px; background: var(--layer-1); border-radius: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                            >
+                                {@html highlightSnippet(snippet, searchTerm)}
+                            </div>
+                        {/if}
+                    {/if}
                 </div>
             {/each}
             {#if renderLimit < conversations.length}
