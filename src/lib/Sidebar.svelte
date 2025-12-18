@@ -381,7 +381,8 @@
 </script>
 
 <aside
-    style="background: var(--bg-deep); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden;"
+    class="glass"
+    style="border-right: 1px solid var(--border-light); display: flex; flex-direction: column; overflow: hidden;"
 >
     <!-- Header -->
     <div
@@ -420,7 +421,8 @@
             placeholder={searchMode === "title"
                 ? "Buscar por título..."
                 : "Buscar no conteúdo..."}
-            style="width: 100%; padding: 6px 8px; font-size: 12px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-1); color: var(--color-text-primary);"
+            class="glow-focus"
+            style="width: 100%; padding: 8px 12px; font-size: 12px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-1); color: var(--color-text-primary); transition: all 0.3s;"
         />
 
         <!-- Search mode toggle -->
