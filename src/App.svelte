@@ -383,13 +383,26 @@
 
             <div style="flex: 1;"></div>
 
-            <GlitchButton on:click={exportAllMetadata}>
+            <GlitchButton
+                on:click={exportAllMetadata}
+                size="sm"
+                variant="secondary"
+            >
                 💾 Exportar Meta
             </GlitchButton>
-            <GlitchButton on:click={importMetadata}>
+            <GlitchButton
+                on:click={importMetadata}
+                size="sm"
+                variant="secondary"
+            >
                 📥 Importar Meta
             </GlitchButton>
-            <GlitchButton on:click={clearAllData} className="danger">
+            <GlitchButton
+                on:click={clearAllData}
+                className="danger"
+                size="sm"
+                variant="danger"
+            >
                 🗑️ Limpar Tudo
             </GlitchButton>
         </div>
@@ -401,6 +414,13 @@
             on:updateMeta={handleUpdateMeta}
             on:toggleFav={handleToggleFav}
             on:deselect={() => (activeId = null)}
+            on:navigate={(e) => {
+                const route = e.detail.route;
+                if (route === "favorites") activeFolder = "__FAV__";
+                else if (route === "stats")
+                    console.log("Stats unimplemented"); // Placeholder for now
+                else if (route === "all") activeFolder = "__ALL__";
+            }}
         />
     </div>
 </div>

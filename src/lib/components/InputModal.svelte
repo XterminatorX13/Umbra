@@ -69,13 +69,13 @@
     .modal-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.7);
-        backdrop-filter: blur(4px);
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(12px); /* Deep premium blur */
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 10000;
-        animation: fadeIn 0.15s ease-out;
+        animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     @keyframes fadeIn {
@@ -88,20 +88,41 @@
     }
 
     .modal-content {
-        background: var(--bg-panel);
-        border: 1px solid var(--border-light);
-        border-radius: var(--radius-large);
-        padding: 20px;
-        min-width: 320px;
+        background: rgba(26, 26, 36, 0.85);
+        backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 32px;
+        min-width: 360px;
         max-width: 90vw;
-        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
-        animation: slideIn 0.2s ease-out;
+        box-shadow:
+            0 24px 80px rgba(0, 0, 0, 0.5),
+            0 0 0 1px rgba(255, 255, 255, 0.05); /* Inner Ring */
+        animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Top Shine Line */
+    .modal-content::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(167, 139, 250, 0.4),
+            transparent
+        );
     }
 
     @keyframes slideIn {
         from {
             opacity: 0;
-            transform: translateY(-20px) scale(0.95);
+            transform: translateY(24px) scale(0.96);
         }
         to {
             opacity: 1;
@@ -110,67 +131,74 @@
     }
 
     .modal-title {
-        font-size: 14px;
+        font-size: 16px;
         font-weight: 600;
-        color: var(--color-text-primary);
-        margin-bottom: 16px;
+        color: #fff;
+        margin-bottom: 24px;
+        letter-spacing: -0.01em;
+        text-align: center;
     }
 
     .modal-input {
         width: 100%;
-        padding: 12px 14px;
-        font-size: 14px;
-        background: var(--layer-1);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-small);
-        color: var(--color-text-primary);
+        padding: 14px 18px;
+        font-size: 15px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        color: #fff;
         outline: none;
-        transition: all 0.2s;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
     .modal-input:focus {
         border-color: var(--highlight);
-        box-shadow: 0 0 0 3px rgba(157, 78, 221, 0.15);
+        background: rgba(0, 0, 0, 0.4);
+        box-shadow:
+            inset 0 2px 4px rgba(0, 0, 0, 0.2),
+            0 0 0 3px rgba(157, 78, 221, 0.2);
     }
 
     .modal-input::placeholder {
-        color: var(--color-text-tertiary);
+        color: rgba(255, 255, 255, 0.3);
     }
 
     .modal-actions {
         display: flex;
         justify-content: flex-end;
-        gap: 8px;
-        margin-top: 16px;
+        gap: 12px;
+        margin-top: 24px;
     }
 
     .modal-btn {
-        padding: 8px 16px;
+        padding: 10px 20px;
         font-size: 13px;
-        font-weight: 500;
-        border-radius: var(--radius-small);
+        font-weight: 600;
+        border-radius: 10px;
         border: none;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .modal-btn.cancel {
-        background: var(--layer-2);
-        color: var(--color-text-secondary);
+        background: transparent;
+        color: rgba(255, 255, 255, 0.5);
     }
 
     .modal-btn.cancel:hover {
-        background: var(--layer-3);
-        color: var(--color-text-primary);
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
     }
 
     .modal-btn.submit {
-        background: var(--gradient-primary);
-        color: white;
+        background: #fff;
+        color: #000;
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
     }
 
     .modal-btn.submit:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(157, 78, 221, 0.4);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(255, 255, 255, 0.3);
     }
 </style>

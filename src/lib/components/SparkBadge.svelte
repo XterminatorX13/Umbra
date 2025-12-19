@@ -23,12 +23,14 @@
         overflow: hidden;
         border-radius: 999px;
         padding: 4px 12px;
-        box-shadow: inset 0 1000px 0 0 hsl(270 50% 15%);
+        box-shadow: inset 0 1000px 0 0 var(--layer-1);
         transition: all 0.2s;
+        border: 1px solid rgba(255, 255, 255, 0.05); /* Added subtle border */
     }
 
     .spark-badge:hover {
-        box-shadow: inset 0 1000px 0 0 hsl(270 50% 20%);
+        box-shadow: inset 0 1000px 0 0 var(--layer-2);
+        border-color: rgba(157, 78, 221, 0.3);
     }
 
     .spark-container {
@@ -85,9 +87,11 @@
         font-weight: 500;
         color: var(--color-text-secondary);
         transition: color 0.2s;
+        letter-spacing: 0.02em;
     }
 
     .spark-badge:hover .text {
         color: var(--highlight);
+        text-shadow: 0 0 8px rgba(157, 78, 221, 0.4);
     }
 </style>

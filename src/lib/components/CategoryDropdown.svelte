@@ -64,7 +64,7 @@
     {#if isOpen && conversations.length > 0}
         <div
             on:scroll={handleScroll}
-            style="margin-top: 4px; margin-left: 12px; max-height: 300px; overflow-y: auto;"
+            class="conversation-list custom-scrollbar"
         >
             {#each conversations.slice(0, renderLimit) as conv (getConvKey(conv))}
                 {@const key = getConvKey(conv)}
@@ -74,70 +74,60 @@
                 <div
                     on:click={() => select(key)}
                     class="conv-row"
-                    style="padding: 8px; margin: 2px 0; cursor: pointer; background: {activeId ===
-                    key
-                        ? 'var(--accent-1)'
-                        : 'var(--bg-deep)'}; border-radius: var(--radius-small); border: 1px solid {activeId ===
-                    key
-                        ? 'var(--highlight)'
-                        : 'transparent'}; transition: all 0.15s;"
+                    class:active={activeId === key}
                 >
-                    <div
-                        style="font-size: 11px; font-weight: 500; color: {activeId ===
-                        key
-                            ? '#fff'
-                            : 'var(--color-text-primary)'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                    >
+                    <div class="conv-title">
                         {conv.title || "(Sem título)"}
                     </div>
-                    <div
-                        style="font-size: 9px; color: {activeId === key
-                            ? 'rgba(255,255,255,0.7)'
-                            : 'var(--color-text-secondary)'}; margin-top: 2px; display: flex; gap: 6px;"
-                    >
+
+                    <div class="conv-meta">
                         <span>💬 {conv.messages.length}</span>
                         {#if conv.createTime}
                             <span style="opacity:0.6"
                                 >• {formatDate(conv.createTime)}</span
                             >
                         {/if}
-                        {#if meta.favorite}<span
-                                style="color: var(--highlight);">★</span
-                            >{/if}
+                        {#if meta.favorite}<span class="fav-icon">★</span>{/if}
                         {#if meta.folder}<span>📁 {meta.folder}</span>{/if}
                     </div>
+
                     {#if getSnippet}
                         {@const snippet = getSnippet(key)}
                         {#if snippet}
-                            <div
-                                style="font-size: 9px; color: var(--color-text-tertiary); margin-top: 4px; padding: 4px 6px; background: var(--layer-1); border-radius: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                            >
+                            <div class="conv-snippet">
                                 {@html highlightSnippet(snippet, searchTerm)}
                             </div>
                         {/if}
                     {/if}
+
+                    <!-- Active Glow Effect -->
+                    {#if activeId === key}
+                        <div class="active-glow"></div>
+                    {/if}
                 </div>
             {/each}
             {#if renderLimit < conversations.length}
-                <div
-                    style="padding:8px; text-align:center; font-size:10px; opacity:0.5;"
-                >
-                    Calculating...
-                </div>
+                <div class="loading-indicator">Carregando mais...</div>
             {/if}
         </div>
     {/if}
 
     {#if isOpen && conversations.length === 0}
-        <div
-            style="padding: 12px; margin-left: 12px; text-align: center; font-size: 10px; color: var(--color-text-secondary);"
-        >
-            Nenhuma conversa
-        </div>
+        <div class="empty-msg">Nenhuma conversa</div>
     {/if}
 </div>
 
 <style>
+    /* List Container */
+    .conversation-list {
+        margin-top: 4px;
+        margin-left: 4px; /* Tighter align */
+        max-height: 300px;
+        overflow-y: auto;
+        contain: content; /* Performance Boost */
+        padding-right: 4px;
+    }
+
     /* Premium Category Header */
     .category-header {
         display: flex;
@@ -149,60 +139,174 @@
         border-radius: var(--radius-small);
         border: 1px solid var(--border-light);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
     }
 
     .category-header:hover {
         background: linear-gradient(135deg, var(--layer-3), var(--layer-2));
-        border-color: var(--border-focus);
+        border-color: rgba(157, 78, 221, 0.3);
         transform: translateY(-1px);
         box-shadow: var(--shadow-sm);
+    }
+
+    .category-header::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.03),
+            transparent
+        );
+        transform: translateX(-100%);
+        transition: transform 0.5s;
+    }
+
+    .category-header:hover::after {
+        transform: translateX(100%);
     }
 
     .category-header .chevron {
         font-size: 10px;
         color: var(--color-text-secondary);
         width: 14px;
-        transition: transform 0.3s ease;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .category-header.is-open .chevron {
-        transform: rotate(0deg);
+        transform: rotate(90deg); /* Standard chevron rotation */
     }
 
     .category-header .icon {
         font-size: 16px;
+        filter: drop-shadow(0 0 8px rgba(157, 78, 221, 0.2));
     }
 
     .category-header .title {
         font-size: 13px;
-        font-weight: 500;
+        font-weight: 600;
         color: var(--color-text-primary);
         flex: 1;
+        letter-spacing: -0.01em;
     }
 
     .category-header .count {
-        font-size: 11px;
-        font-weight: 600;
-        padding: 3px 10px;
-        background: var(--bg-deep);
-        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 8px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
         color: var(--color-text-secondary);
+        border: 1px solid var(--border);
     }
 
-    /* Conversation Row */
+    /* Conversation Row - Glass Cockpit Style */
     .conv-row {
-        padding: 8px 12px;
-        margin: 4px 0;
+        position: relative;
+        padding: 10px 14px;
+        margin: 2px 0;
         cursor: pointer;
-        background: var(--bg-deep);
+        background: transparent;
         border-radius: var(--radius-small);
-        border: 1px solid transparent;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid transparent; /* Reserve space */
+        transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        overflow: hidden;
     }
 
     .conv-row:hover {
-        background: var(--layer-1);
-        border-color: var(--border-light);
-        transform: translateX(4px);
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    /* Active State */
+    .conv-row.active {
+        background: linear-gradient(
+            90deg,
+            rgba(157, 78, 221, 0.15) 0%,
+            transparent 100%
+        );
+        border-color: rgba(157, 78, 221, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .active-glow {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--highlight);
+        box-shadow: 0 0 10px var(--highlight);
+        border-radius: 0 4px 4px 0;
+    }
+
+    .conv-title {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        transition: color 0.2s;
+    }
+
+    .conv-row:hover .conv-title {
+        color: var(--color-text-primary);
+    }
+
+    .conv-row.active .conv-title {
+        color: #fff;
+        font-weight: 600;
+        text-shadow: 0 0 12px rgba(157, 78, 221, 0.5);
+    }
+
+    .conv-meta {
+        font-size: 10px;
+        color: var(--color-text-tertiary);
+        margin-top: 4px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .conv-row.active .conv-meta {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .fav-icon {
+        color: var(--highlight);
+        filter: drop-shadow(0 0 5px var(--highlight));
+    }
+
+    .conv-snippet {
+        font-size: 10px;
+        color: var(--color-text-secondary);
+        margin-top: 6px;
+        padding: 6px 8px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 4px;
+        border: 1px solid var(--border);
+        line-height: 1.4;
+    }
+
+    .loading-indicator {
+        padding: 12px;
+        text-align: center;
+        font-size: 10px;
+        color: var(--color-text-tertiary);
+        font-style: italic;
+    }
+
+    .empty-msg {
+        padding: 20px;
+        text-align: center;
+        font-size: 11px;
+        color: var(--color-text-tertiary);
+        font-style: italic;
+        background: rgba(255, 255, 255, 0.01);
+        border-radius: var(--radius-small);
+        margin-left: 12px;
+        margin-top: 4px;
     }
 </style>

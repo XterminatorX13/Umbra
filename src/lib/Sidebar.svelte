@@ -421,8 +421,8 @@
             placeholder={searchMode === "title"
                 ? "Buscar por título..."
                 : "Buscar no conteúdo..."}
-            class="glow-focus"
-            style="width: 100%; padding: 8px 12px; font-size: 12px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-1); color: var(--color-text-primary); transition: all 0.3s;"
+            class="sidebar-search-input"
+            spellcheck="false"
         />
 
         <!-- Search mode toggle -->
@@ -640,6 +640,37 @@
         transform: scale(1.05);
         background: var(--accent-2) !important;
         color: #fff !important;
+    }
+
+    /* Premium Sidebar Search Input */
+    .sidebar-search-input {
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 13px;
+        border-radius: 8px;
+        border: 1px solid var(--border-light);
+        background: rgba(0, 0, 0, 0.2); /* Deep recessed look */
+        color: var(--color-text-primary);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        outline: none;
+    }
+
+    .sidebar-search-input:focus {
+        background: rgba(0, 0, 0, 0.3);
+        border-color: rgba(157, 78, 221, 0.4);
+        box-shadow:
+            inset 0 2px 4px rgba(0, 0, 0, 0.1),
+            0 0 0 3px rgba(157, 78, 221, 0.1);
+    }
+
+    .sidebar-search-input::placeholder {
+        color: var(--color-text-tertiary);
+        transition: color 0.2s;
+    }
+
+    .sidebar-search-input:hover::placeholder {
+        color: var(--color-text-secondary);
     }
 
     kbd {

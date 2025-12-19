@@ -1,10 +1,10 @@
 <script>
-    export let duration = 2; // Animation duration in seconds
-    export let delay = 0; // Animation delay
-    export let colorFrom = "#8b5cf6"; // Purple
-    export let colorVia = "#d96fff"; // Highlight pink
-    export let colorTo = "#d946ef"; // Pink
-    export let size = 200; // Beam size in pixels
+    export let duration = 3; // Slower by default
+    export let delay = 0;
+    export let colorFrom = "var(--accent-1)";
+    export let colorVia = "var(--highlight)";
+    export let colorTo = "var(--accent-2)";
+    export let size = 300; // Larger beam
 
     let containerRef;
 </script>
@@ -34,7 +34,7 @@
     .border-beam {
         position: absolute;
         inset: 0;
-        /* Aurora Gradient - Static but beautiful */
+        /* Aurora Gradient - Dynamic */
         background: radial-gradient(
             circle at 50% 50%,
             rgba(157, 78, 221, 0.4),

@@ -26,12 +26,14 @@
     Globe,
     Sparkles,
     Circle,
+    List,
   } from "lucide-svelte";
   import BorderBeam from "./components/BorderBeam.svelte";
   import RichTextEditor from "./components/RichTextEditor.svelte";
   import SpotlightInput from "./components/SpotlightInput.svelte";
   import EmptyState from "./components/EmptyState.svelte";
   import ShineBorder from "./components/ShineBorder.svelte";
+  import SourcesPanel from "./components/SourcesPanel.svelte";
 
   export let conversation = null;
   export let meta = {};
@@ -45,6 +47,35 @@
   let copySuccess = false;
   let fontSize = localStorage.getItem("chat-font-size") || "13";
   let inputText = "";
+  let sourcesPanelOpen = false;
+  let currentMessageSources = []; // Sources for the currently opened message
+  let sourcesDropdownOpen = false; // For Inspector dropdown
+
+  // Extract safe_urls from conversation (Deep Research sources)
+  $: safeUrls = conversation?.raw?.safe_urls || [];
+  $: isDeepResearch = conversation?.raw?.default_model_slug === "research";
+
+  // Compute all sources across conversation messages
+  $: allConversationSources = (() => {
+    if (!conversation?.messages) return [];
+    const allSources = [];
+    const seen = new Set();
+    for (const msg of conversation.messages) {
+      if (msg.sources) {
+        for (const src of msg.sources) {
+          if (!seen.has(src.url)) {
+            seen.add(src.url);
+            allSources.push(src);
+          }
+        }
+      }
+    }
+    return allSources;
+  })();
+
+  // Messages that have sources (for hierarchical view)
+  $: messagesWithSources =
+    conversation?.messages?.filter((m) => m.sources?.length > 0) || [];
 
   // Lazy loading state
   const MESSAGES_PER_PAGE = 20;
@@ -246,7 +277,11 @@
 </script>
 
 {#if !conversation}
-  <EmptyState />
+  <EmptyState
+    on:navigate
+    on:openFilePicker={() =>
+      document.getElementById("main-file-input")?.click()}
+  />
 {:else}
   <div
     style="position: relative; background: var(--bg-deep); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; height: 100%; width: 100%;"
@@ -385,6 +420,37 @@
             class="msg-content prose-invert"
             style="font-size: {fontSize}px;"
           >
+            <!-- Tool Badges (Deep Research, Python, etc) -->
+            {#if msg.tools && msg.tools.length > 0}
+              <div class="tool-badge-container">
+                {#each msg.tools as tool}
+                  {#if tool.label.includes("Sources") && msg.sources}
+                    <button
+                      class="tool-badge clickable"
+                      on:click={() => {
+                        currentMessageSources = msg.sources;
+                        sourcesPanelOpen = true;
+                      }}
+                    >
+                      <List size={10} />
+                      {tool.label}
+                    </button>
+                  {:else}
+                    <div class="tool-badge">
+                      {#if tool.icon === "globe"}
+                        <Globe size={10} />
+                      {:else if tool.icon === "terminal"}
+                        <Zap size={10} />
+                      {:else if tool.icon === "book"}
+                        <List size={10} />
+                      {/if}
+                      {tool.label}
+                    </div>
+                  {/if}
+                {/each}
+              </div>
+            {/if}
+
             {@html getCachedMarkdown(msg)}
           </div>
         </div>
@@ -539,6 +605,77 @@
           </div>
         </div>
 
+        <!-- Sources (Deep Research) -->
+        {#if allConversationSources.length > 0 || safeUrls.length > 0}
+          <div>
+            <h4
+              class="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 pl-1 flex items-center gap-2"
+            >
+              <Globe size={12} /> Sources
+              {#if isDeepResearch}
+                <span
+                  class="px-1.5 py-0.5 bg-violet-500/20 text-violet-300 rounded text-[8px] font-semibold"
+                  >DEEP RESEARCH</span
+                >
+              {/if}
+            </h4>
+
+            <!-- Global Sources Badge -->
+            <button
+              class="w-full flex items-center justify-between p-3 rounded-[10px] bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 transition-colors cursor-pointer mb-2"
+              on:click={() => {
+                currentMessageSources =
+                  allConversationSources.length > 0
+                    ? allConversationSources
+                    : safeUrls.map((url) => ({ url, title: url, domain: url }));
+                sourcesPanelOpen = true;
+              }}
+            >
+              <div class="flex items-center gap-2 text-violet-300 text-[11px]">
+                <List size={14} /> Total Sources
+              </div>
+              <span
+                class="text-[11px] font-mono text-violet-200 bg-violet-500/30 px-2 py-0.5 rounded-full"
+              >
+                {allConversationSources.length || safeUrls.length}
+              </span>
+            </button>
+
+            <!-- Per-Message Breakdown Dropdown -->
+            {#if messagesWithSources.length > 0}
+              <button
+                class="w-full flex items-center justify-between p-2 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors text-[10px] text-slate-500"
+                on:click={() => (sourcesDropdownOpen = !sourcesDropdownOpen)}
+              >
+                <span>Ver por mensagem ({messagesWithSources.length})</span>
+                <ChevronDown
+                  size={12}
+                  class="transition-transform {sourcesDropdownOpen
+                    ? 'rotate-180'
+                    : ''}"
+                />
+              </button>
+
+              {#if sourcesDropdownOpen}
+                <div class="mt-2 space-y-1 max-h-40 overflow-y-auto">
+                  {#each messagesWithSources as msg, i}
+                    <button
+                      class="w-full flex items-center justify-between px-2 py-1.5 rounded-md bg-white/[0.01] hover:bg-white/[0.04] transition-colors text-[10px] text-slate-400"
+                      on:click={() => {
+                        currentMessageSources = msg.sources;
+                        sourcesPanelOpen = true;
+                      }}
+                    >
+                      <span class="truncate max-w-[120px]">Msg {i + 1}</span>
+                      <span class="text-violet-300">{msg.sources.length}</span>
+                    </button>
+                  {/each}
+                </div>
+              {/if}
+            {/if}
+          </div>
+        {/if}
+
         <!-- Tags -->
         <div>
           <h4
@@ -579,6 +716,13 @@
   {/if}
 {/if}
 
+<!-- Sources Panel (Per-Message Sources) -->
+<SourcesPanel
+  sources={currentMessageSources}
+  isOpen={sourcesPanelOpen}
+  on:close={() => (sourcesPanelOpen = false)}
+/>
+
 <style>
   @keyframes pulse {
     0%,
@@ -595,11 +739,11 @@
   @keyframes messageIn {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(12px) scale(0.98);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
   }
 
@@ -607,93 +751,138 @@
     contain: content;
     content-visibility: auto;
     contain-intrinsic-size: 0 100px;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
     display: flex;
-    gap: 20px;
-    animation: messageIn 0.4s cubic-bezier(0.2, 0.9, 0.2, 1) backwards;
+    gap: 16px;
+    animation: messageIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) backwards;
     padding: 0 16px;
   }
 
+  /* USER BUBBLE - Minimal, Dark, Sharp */
   .message-bubble.user {
     flex-direction: row-reverse;
   }
 
   .message-bubble.user .msg-content {
-    background: #1c1c1c;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-top-right-radius: 4px;
-    border-top-left-radius: 16px;
-    border-bottom-left-radius: 16px;
-    border-bottom-right-radius: 16px;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.08); /* High-tech subtle border */
+    border-radius: 12px;
+    border-top-right-radius: 2px;
     color: var(--color-text-primary);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-
-  .message-bubble.assistant .msg-content {
-    background: linear-gradient(135deg, #181024 0%, #0f0a16 100%);
-    border: 1px solid rgba(139, 92, 246, 0.1);
-    border-top-left-radius: 4px;
-    border-top-right-radius: 16px;
-    border-bottom-right-radius: 16px;
-    border-bottom-left-radius: 16px;
-    padding-left: 24px;
-    padding-right: 24px;
-    padding-top: 20px;
-    padding-bottom: 20px;
-    box-shadow:
-      0 4px 20px rgba(0, 0, 0, 0.2),
-      0 0 0 1px rgba(139, 92, 246, 0.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     position: relative;
     overflow: hidden;
   }
 
+  /* ASSISTANT BUBBLE - Aurora Luxury */
+  .message-bubble.assistant .msg-content {
+    background: rgba(18, 16, 24, 0.85); /* Deep purple tinted glass */
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(139, 92, 246, 0.15); /* Subtle purple border */
+    border-radius: 12px;
+    border-top-left-radius: 2px;
+    padding: 24px 28px;
+    box-shadow:
+      0 4px 24px -1px rgba(0, 0, 0, 0.4),
+      0 0 0 1px rgba(139, 92, 246, 0.05); /* Inner ring */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Space for tool badges */
+  }
+
+  .tool-badge-container {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tool-badge {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(139, 92, 246, 0.15);
+    color: #c4b5fd;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+  }
+
+  .tool-badge.clickable {
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .tool-badge.clickable:hover {
+    background: rgba(139, 92, 246, 0.3);
+    border-color: rgba(139, 92, 246, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+  }
+
+  .tool-badge.clickable:active {
+    transform: scale(0.98);
+  }
+
+  /* Top accent line for Assistant */
   .message-bubble.assistant .msg-content::before {
     content: "";
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
+    right: 0;
     height: 1px;
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(139, 92, 246, 0.2),
+      rgba(167, 139, 250, 0.4),
       transparent
     );
+    opacity: 0.8;
   }
 
   .msg-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px; /* Squircleish */
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     font-size: 14px;
+    transition: transform 0.2s;
+  }
+
+  .message-bubble:hover .msg-avatar {
+    transform: scale(1.05);
   }
 
   .message-bubble.user .msg-avatar {
-    background: linear-gradient(135deg, #334155, #1e293b);
+    background: #2d2d3a;
     color: #fff;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .message-bubble.assistant .msg-avatar {
-    background: linear-gradient(135deg, #2a1b4e, #120820);
-    color: #c4b5fd;
-    box-shadow: 0 0 15px rgba(124, 58, 237, 0.15);
-    position: relative;
-    overflow: hidden;
+    background: linear-gradient(135deg, #4c1d95, #2e1065);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(124, 58, 237, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.3);
   }
 
   .msg-content {
-    max-width: 80%;
-    padding: 16px 24px;
+    max-width: 85%;
+    padding: 14px 18px;
     font-size: 15px;
-    line-height: 1.7;
+    line-height: 1.6; /* Editorial leading */
     color: var(--color-text-primary);
     overflow-wrap: break-word;
+    letter-spacing: -0.01em;
   }
 
   .msg-content :global(p) {

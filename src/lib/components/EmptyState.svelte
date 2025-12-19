@@ -55,22 +55,42 @@
 
         <!-- Action Buttons -->
         <div class="action-btn-group">
-            <GlitchButton on:click={openFilePicker}>
-                <Upload size={16} />
+            <GlitchButton
+                on:click={openFilePicker}
+                size="lg"
+                variant="primary"
+                className="w-full"
+            >
+                <Upload size={18} />
                 Arrastar conversations.json aqui
             </GlitchButton>
 
-            <GlitchButton on:click={goToFavorites}>
+            <GlitchButton
+                on:click={goToFavorites}
+                size="md"
+                variant="secondary"
+                className="w-full"
+            >
                 <Star size={16} />
                 Ver Favoritos
             </GlitchButton>
 
-            <GlitchButton on:click={goToStats}>
+            <GlitchButton
+                on:click={goToStats}
+                size="md"
+                variant="secondary"
+                className="w-full"
+            >
                 <BarChart3 size={16} />
                 Estatísticas
             </GlitchButton>
 
-            <GlitchButton on:click={goToAll}>
+            <GlitchButton
+                on:click={goToAll}
+                size="md"
+                variant="secondary"
+                className="w-full"
+            >
                 <FolderOpen size={16} />
                 Ver Todas as Conversas
             </GlitchButton>
@@ -141,6 +161,19 @@
         text-align: center;
         padding: 40px;
         animation: fadeIn 0.6s ease-out;
+        max-width: 400px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .action-btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px; /* Espaçamento mais clean */
+        width: 100%;
+        margin-top: 10px;
     }
 
     @keyframes fadeIn {
@@ -183,7 +216,7 @@
     .subtitle {
         color: var(--color-text-secondary);
         font-size: 14px;
-        margin-bottom: 40px;
+        margin-bottom: 32px;
     }
 
     /* Keyboard Hint */
@@ -193,7 +226,7 @@
         justify-content: center;
         gap: 8px;
         margin-top: 32px;
-        padding: 10px 20px;
+        padding: 8px 16px;
         background: rgba(255, 255, 255, 0.02);
         border: 1px solid var(--border);
         border-radius: 999px;
@@ -202,7 +235,7 @@
     }
 
     .kbd-hint kbd {
-        padding: 3px 8px;
+        padding: 2px 6px;
         background: var(--layer-2);
         border: 1px solid var(--border-light);
         border-radius: 4px;

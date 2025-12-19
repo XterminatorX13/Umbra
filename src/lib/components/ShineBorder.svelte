@@ -24,15 +24,25 @@
 
     .shine-border {
         position: absolute;
-        inset: 0;
-        border-radius: inherit;
+        inset: -50%; /* Extend to ensure coverage during rotation */
+        width: 200%;
+        height: 200%;
+        top: -50%;
+        left: -50%;
         background: conic-gradient(
             from 0deg,
             transparent 0deg,
-            var(--highlight) 60deg,
-            transparent 120deg
+            transparent 80deg,
+            var(--highlight) 100deg,
+            transparent 120deg,
+            transparent 260deg,
+            var(--highlight) 280deg,
+            transparent 300deg,
+            transparent 360deg
         );
         animation: rotate var(--duration) linear infinite;
+        opacity: 0.6; /* Softer */
+        filter: blur(8px); /* Diffuse light */
     }
 
     @keyframes rotate {
