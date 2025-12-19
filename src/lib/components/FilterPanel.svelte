@@ -6,10 +6,11 @@
         Image,
         Globe,
         Sparkles,
-        Calendar,
+        Calendar as CalendarIcon,
         ChevronDown,
     } from "lucide-svelte";
     import { fly, fade } from "svelte/transition";
+    import Calendar from "./Calendar.svelte";
 
     export let conversations = [];
     export let filters = {
@@ -21,6 +22,10 @@
         dateTo: null,
     };
     export let isOpen = false;
+
+    // Calendar popover states
+    let showCalendarFrom = false;
+    let showCalendarTo = false;
 
     const dispatch = createEventDispatcher();
 
@@ -211,30 +216,68 @@
         <!-- Date Section -->
         <div class="filter-group">
             <div class="group-label">
-                <Calendar size={12} />
+                <CalendarIcon size={12} />
                 Período
             </div>
             <div class="date-row">
-                <div class="date-input-wrap">
-                    <input
-                        type="date"
-                        placeholder="De"
-                        value={filters.dateFrom
-                            ? filters.dateFrom.toISOString().split("T")[0]
-                            : ""}
-                        on:change={setDateFrom}
-                    />
+                <div class="date-picker-wrap">
+                    <button
+                        class="date-btn"
+                        class:has-value={filters.dateFrom}
+                        on:click|stopPropagation={() => {
+                            showCalendarFrom = !showCalendarFrom;
+                            showCalendarTo = false;
+                        }}
+                    >
+                        {#if filters.dateFrom}
+                            {filters.dateFrom.toLocaleDateString("pt-BR")}
+                        {:else}
+                            De
+                        {/if}
+                    </button>
+                    {#if showCalendarFrom}
+                        <div class="calendar-popup">
+                            <Calendar
+                                value={filters.dateFrom}
+                                maxDate={filters.dateTo}
+                                on:select={(e) => {
+                                    filters.dateFrom = e.detail;
+                                    showCalendarFrom = false;
+                                    dispatch("change", filters);
+                                }}
+                            />
+                        </div>
+                    {/if}
                 </div>
                 <span class="date-sep">→</span>
-                <div class="date-input-wrap">
-                    <input
-                        type="date"
-                        placeholder="Até"
-                        value={filters.dateTo
-                            ? filters.dateTo.toISOString().split("T")[0]
-                            : ""}
-                        on:change={setDateTo}
-                    />
+                <div class="date-picker-wrap">
+                    <button
+                        class="date-btn"
+                        class:has-value={filters.dateTo}
+                        on:click|stopPropagation={() => {
+                            showCalendarTo = !showCalendarTo;
+                            showCalendarFrom = false;
+                        }}
+                    >
+                        {#if filters.dateTo}
+                            {filters.dateTo.toLocaleDateString("pt-BR")}
+                        {:else}
+                            Até
+                        {/if}
+                    </button>
+                    {#if showCalendarTo}
+                        <div class="calendar-popup right">
+                            <Calendar
+                                value={filters.dateTo}
+                                minDate={filters.dateFrom}
+                                on:select={(e) => {
+                                    filters.dateTo = e.detail;
+                                    showCalendarTo = false;
+                                    dispatch("change", filters);
+                                }}
+                            />
+                        </div>
+                    {/if}
                 </div>
             </div>
         </div>
@@ -514,31 +557,45 @@
         gap: 8px;
     }
 
-    .date-input-wrap {
+    .date-picker-wrap {
         flex: 1;
+        position: relative;
     }
 
-    .date-input-wrap input {
+    .date-btn {
         width: 100%;
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 8px;
-        padding: 8px 10px;
+        padding: 10px 12px;
         font-size: 11px;
-        color: #ccc;
-        transition: all 0.2s;
-    }
-
-    .date-input-wrap input:focus {
-        outline: none;
-        border-color: rgba(139, 92, 246, 0.4);
-        background: rgba(139, 92, 246, 0.05);
-    }
-
-    .date-input-wrap input::-webkit-calendar-picker-indicator {
-        filter: invert(0.7);
-        opacity: 0.6;
+        color: #666;
         cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+    }
+
+    .date-btn:hover {
+        background: rgba(139, 92, 246, 0.1);
+        border-color: rgba(139, 92, 246, 0.3);
+        color: #a78bfa;
+    }
+
+    .date-btn.has-value {
+        color: #c4b5fd;
+        border-color: rgba(139, 92, 246, 0.3);
+    }
+
+    .calendar-popup {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        z-index: 200;
+    }
+
+    .calendar-popup.right {
+        left: auto;
+        right: 0;
     }
 
     .date-sep {
