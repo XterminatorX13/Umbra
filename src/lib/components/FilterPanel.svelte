@@ -321,7 +321,7 @@
             0 20px 40px rgba(0, 0, 0, 0.5),
             0 0 0 1px rgba(139, 92, 246, 0.1) inset,
             0 0 60px rgba(139, 92, 246, 0.1);
-        overflow: hidden;
+        overflow: visible;
     }
 
     .popover-header {

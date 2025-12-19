@@ -14,20 +14,20 @@
     $: currentMonth = viewDate.getMonth();
     $: currentYear = viewDate.getFullYear();
 
-    const DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    const DAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
     const MONTHS = [
-        "Janeiro",
-        "Fevereiro",
-        "Março",
-        "Abril",
-        "Maio",
-        "Junho",
-        "Julho",
-        "Agosto",
-        "Setembro",
-        "Outubro",
-        "Novembro",
-        "Dezembro",
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Set",
+        "Out",
+        "Nov",
+        "Dez",
     ];
 
     // Calculate calendar grid
@@ -117,14 +117,40 @@
     <!-- Header -->
     <div class="calendar-header">
         <button class="nav-btn" on:click={prevMonth} aria-label="Mês anterior">
-            <ChevronLeft size={16} />
+            <ChevronLeft size={14} />
         </button>
-        <div class="month-year">
-            <span class="month">{MONTHS[currentMonth]}</span>
-            <span class="year">{currentYear}</span>
+        <div class="month-year-selects">
+            <select
+                class="month-select"
+                value={currentMonth}
+                on:change={(e) =>
+                    (viewDate = new Date(
+                        currentYear,
+                        parseInt(e.target.value),
+                        1,
+                    ))}
+            >
+                {#each MONTHS as month, i}
+                    <option value={i}>{month}</option>
+                {/each}
+            </select>
+            <select
+                class="year-select"
+                value={currentYear}
+                on:change={(e) =>
+                    (viewDate = new Date(
+                        parseInt(e.target.value),
+                        currentMonth,
+                        1,
+                    ))}
+            >
+                {#each Array.from({ length: 10 }, (_, i) => currentYear - 5 + i) as year}
+                    <option value={year}>{year}</option>
+                {/each}
+            </select>
         </div>
         <button class="nav-btn" on:click={nextMonth} aria-label="Próximo mês">
-            <ChevronRight size={16} />
+            <ChevronRight size={14} />
         </button>
     </div>
 
@@ -176,30 +202,29 @@
             rgba(16, 14, 22, 0.98)
         );
         border: 1px solid rgba(139, 92, 246, 0.25);
-        border-radius: 16px;
-        padding: 16px;
-        min-width: 280px;
+        border-radius: 12px;
+        padding: 10px;
+        width: 220px;
         backdrop-filter: blur(20px);
         box-shadow:
-            0 20px 40px rgba(0, 0, 0, 0.5),
-            0 0 0 1px rgba(139, 92, 246, 0.1) inset,
-            0 0 60px rgba(139, 92, 246, 0.1);
+            0 10px 25px rgba(0, 0, 0, 0.5),
+            0 0 0 1px rgba(139, 92, 246, 0.1) inset;
     }
 
     .calendar-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 16px;
+        margin-bottom: 8px;
     }
 
     .nav-btn {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
         color: #999;
@@ -213,57 +238,82 @@
         color: #c4b5fd;
     }
 
-    .month-year {
+    .month-year-selects {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 4px;
     }
 
-    .month {
-        font-size: 14px;
+    .month-select,
+    .year-select {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        color: #ede9fe;
+        font-size: 10px;
         font-weight: 600;
+        padding: 3px 4px;
+        cursor: pointer;
+        outline: none;
+        transition: all 0.2s;
+    }
+
+    .month-select:hover,
+    .year-select:hover {
+        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(139, 92, 246, 0.1);
+    }
+
+    .month-select:focus,
+    .year-select:focus {
+        border-color: rgba(139, 92, 246, 0.5);
+        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+    }
+
+    .month-select option,
+    .year-select option {
+        background: #1a1625;
         color: #ede9fe;
     }
 
-    .year {
-        font-size: 14px;
-        font-weight: 400;
-        color: #a78bfa;
+    .year-select {
+        width: 55px;
     }
 
     .calendar-weekdays {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
-        gap: 2px;
-        margin-bottom: 8px;
+        gap: 1px;
+        margin-bottom: 4px;
     }
 
     .weekday {
         text-align: center;
-        font-size: 10px;
+        font-size: 9px;
         font-weight: 600;
         text-transform: uppercase;
         color: #666;
-        padding: 4px;
+        padding: 2px;
     }
 
     .calendar-grid {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
-        gap: 2px;
+        gap: 1px;
     }
 
     .calendar-day {
-        aspect-ratio: 1;
+        width: 26px;
+        height: 26px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 12px;
+        font-size: 10px;
         font-weight: 500;
         color: #e2e8f0;
         background: transparent;
         border: 1px solid transparent;
-        border-radius: 8px;
+        border-radius: 6px;
         cursor: pointer;
         transition: all 0.15s;
     }
@@ -286,11 +336,11 @@
     .calendar-day.today::after {
         content: "";
         position: absolute;
-        bottom: 4px;
+        bottom: 2px;
         left: 50%;
         transform: translateX(-50%);
-        width: 4px;
-        height: 4px;
+        width: 3px;
+        height: 3px;
         border-radius: 50%;
         background: linear-gradient(135deg, #a78bfa, #7c3aed);
     }
@@ -312,8 +362,8 @@
     .calendar-footer {
         display: flex;
         justify-content: center;
-        margin-top: 12px;
-        padding-top: 12px;
+        margin-top: 8px;
+        padding-top: 8px;
         border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
 
@@ -321,10 +371,10 @@
         background: transparent;
         border: 1px solid rgba(139, 92, 246, 0.3);
         color: #a78bfa;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 600;
-        padding: 6px 16px;
-        border-radius: 6px;
+        padding: 4px 12px;
+        border-radius: 4px;
         cursor: pointer;
         transition: all 0.2s;
     }
