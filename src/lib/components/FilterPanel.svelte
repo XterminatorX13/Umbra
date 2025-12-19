@@ -26,6 +26,25 @@
     // Calendar popover states
     let showCalendarFrom = false;
     let showCalendarTo = false;
+    let calendarPos = { top: 0, left: 0 };
+
+    function toggleCalendar(type, event) {
+        const rect = event.currentTarget.getBoundingClientRect();
+        // Adjust for window edges if needed, but simple bottom-left alignment is usually fine
+        // Fixed positioning relative to viewport
+        calendarPos = {
+            top: rect.bottom + 8,
+            left: rect.left,
+        };
+
+        if (type === "from") {
+            showCalendarFrom = !showCalendarFrom;
+            showCalendarTo = false;
+        } else {
+            showCalendarTo = !showCalendarTo;
+            showCalendarFrom = false;
+        }
+    }
 
     const dispatch = createEventDispatcher();
 
@@ -135,7 +154,10 @@
         class="filter-popover"
         bind:this={panelRef}
         transition:fly={{ y: -10, duration: 200 }}
+        role="dialog"
+        aria-modal="true"
         on:click|stopPropagation
+        on:keydown|stopPropagation
     >
         <!-- Header -->
         <div class="popover-header">
@@ -224,10 +246,8 @@
                     <button
                         class="date-btn"
                         class:has-value={filters.dateFrom}
-                        on:click|stopPropagation={() => {
-                            showCalendarFrom = !showCalendarFrom;
-                            showCalendarTo = false;
-                        }}
+                        on:click|stopPropagation={(e) =>
+                            toggleCalendar("from", e)}
                     >
                         {#if filters.dateFrom}
                             {filters.dateFrom.toLocaleDateString("pt-BR")}
@@ -236,7 +256,10 @@
                         {/if}
                     </button>
                     {#if showCalendarFrom}
-                        <div class="calendar-popup">
+                        <div
+                            class="calendar-fixed-wrapper"
+                            style="top: {calendarPos.top}px; left: {calendarPos.left}px"
+                        >
                             <Calendar
                                 value={filters.dateFrom}
                                 maxDate={filters.dateTo}
@@ -254,10 +277,8 @@
                     <button
                         class="date-btn"
                         class:has-value={filters.dateTo}
-                        on:click|stopPropagation={() => {
-                            showCalendarTo = !showCalendarTo;
-                            showCalendarFrom = false;
-                        }}
+                        on:click|stopPropagation={(e) =>
+                            toggleCalendar("to", e)}
                     >
                         {#if filters.dateTo}
                             {filters.dateTo.toLocaleDateString("pt-BR")}
@@ -266,7 +287,10 @@
                         {/if}
                     </button>
                     {#if showCalendarTo}
-                        <div class="calendar-popup right">
+                        <div
+                            class="calendar-fixed-wrapper"
+                            style="top: {calendarPos.top}px; left: {calendarPos.left}px"
+                        >
                             <Calendar
                                 value={filters.dateTo}
                                 minDate={filters.dateFrom}
@@ -575,10 +599,10 @@
         text-align: center;
     }
 
-    .date-btn:hover {
-        background: rgba(139, 92, 246, 0.1);
-        border-color: rgba(139, 92, 246, 0.3);
-        color: #a78bfa;
+    .calendar-fixed-wrapper {
+        position: fixed;
+        z-index: 9999;
+        /* Default width of calendar is 220px + padding */
     }
 
     .date-btn.has-value {
@@ -587,16 +611,9 @@
         background: rgba(139, 92, 246, 0.05);
     }
 
-    .calendar-popup {
-        position: absolute;
-        top: calc(100% + 12px);
-        left: 8px; /* More clearance from left edge */
-        z-index: 200;
-    }
-
-    .calendar-popup.right {
-        left: auto;
-        right: 8px; /* Symmetric */
+    .date-sep {
+        color: #444;
+        font-size: 12px;
     }
 
     .popover-header {
@@ -614,12 +631,12 @@
         text-transform: uppercase; /* Inspector style */
     }
 
-    .popover-header h3 {
+    .popover-title {
         margin: 0;
         flex: 1;
         font-size: inherit;
         font-weight: inherit;
-        color: #fff; /* Title keeps white */
+        color: #fff;
     }
 
     .apply-btn {
