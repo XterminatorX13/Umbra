@@ -17,6 +17,32 @@ function getModelName(slug) {
     return MODEL_NAMES[slug] || slug;
 }
 
+/**
+ * Parses image generation structured output from DALL-E.
+ * Detects JSON like: {"prompt": "...", "size": "1024x1024"}
+ * @returns {Object|null} { prompt, size } or null if not an image gen prompt
+ */
+export function parseImageGenPrompt(text) {
+    if (!text) return null;
+    const trimmed = text.trim();
+
+    // Check if it looks like a JSON image prompt
+    if (!trimmed.startsWith('{') || !trimmed.includes('"prompt"')) return null;
+
+    try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed.prompt && typeof parsed.prompt === 'string') {
+            return {
+                prompt: parsed.prompt,
+                size: parsed.size || '1024x1024'
+            };
+        }
+    } catch (e) {
+        // Not valid JSON
+    }
+    return null;
+}
+
 export function normalizeConversation(conv) {
     const title = conv.title || '(Sem título)';
     const createTime = conv.create_time || null;
@@ -115,16 +141,20 @@ function extractMessagesFromMapping(mapping, fallbackTime, safeUrls = []) {
         const msgModelSlug = msg.metadata?.model_slug || null;
         const modelName = msgModelSlug ? (getModelName(msgModelSlug) || msgModelSlug) : null;
 
+        // Detect DALL-E image generation prompts (structured output)
+        const imageGenPrompt = parseImageGenPrompt(text);
+
         msgs.push({
             id: msg.id || key,
             role,
-            textMarkdown: text,
-            textPlain: text,
+            textMarkdown: imageGenPrompt ? null : text, // Don't show raw JSON for image prompts
+            textPlain: imageGenPrompt ? imageGenPrompt.prompt : text,
             timestamp: ts,
             tools,
             sources,
             modelSlug: msgModelSlug,
-            modelName: modelName
+            modelName: modelName,
+            imageGen: imageGenPrompt // { prompt, size } or null
         });
     }
 

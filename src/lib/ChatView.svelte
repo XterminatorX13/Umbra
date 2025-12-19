@@ -27,6 +27,7 @@
     Sparkles,
     Circle,
     List,
+    Image,
   } from "lucide-svelte";
   import BorderBeam from "./components/BorderBeam.svelte";
   import RichTextEditor from "./components/RichTextEditor.svelte";
@@ -459,7 +460,21 @@
               </div>
             {/if}
 
-            {@html getCachedMarkdown(msg)}
+            <!-- Image Generation Prompt Card -->
+            {#if msg.imageGen}
+              <div class="image-gen-card">
+                <div class="image-gen-header">
+                  <Image size={16} />
+                  <span class="image-gen-label">DALL-E Prompt</span>
+                  <span class="image-gen-size">{msg.imageGen.size}</span>
+                </div>
+                <div class="image-gen-prompt">
+                  {msg.imageGen.prompt}
+                </div>
+              </div>
+            {:else}
+              {@html getCachedMarkdown(msg)}
+            {/if}
           </div>
         </div>
       {/each}
@@ -853,6 +868,54 @@
     align-items: center;
     gap: 4px;
     font-weight: 600;
+  }
+
+  /* Image Generation Card Styles */
+  .image-gen-card {
+    background: linear-gradient(
+      135deg,
+      rgba(236, 72, 153, 0.1),
+      rgba(167, 139, 250, 0.1)
+    );
+    border: 1px solid rgba(236, 72, 153, 0.3);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+
+  .image-gen-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(236, 72, 153, 0.15);
+    border-bottom: 1px solid rgba(236, 72, 153, 0.2);
+    color: #f9a8d4;
+  }
+
+  .image-gen-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .image-gen-size {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 600;
+    color: #a78bfa;
+    background: rgba(167, 139, 250, 0.2);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .image-gen-prompt {
+    padding: 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e2e8f0;
+    font-style: italic;
   }
 
   .tool-badge.clickable {
