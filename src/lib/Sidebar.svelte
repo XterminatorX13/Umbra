@@ -516,7 +516,7 @@
                     <CategoryDropdown
                         title="Todas"
                         icon="📚"
-                        conversations={searchMode === "content" && searchTerm
+                        conversations={searchTerm
                             ? filtered
                             : conversations.filter(
                                   (c) => !metadata[getConvKey(c)]?.deleted,
