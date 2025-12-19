@@ -381,7 +381,10 @@
               <Bot size={16} />
             {/if}
           </div>
-          <div class="msg-content prose-invert">
+          <div
+            class="msg-content prose-invert"
+            style="font-size: {fontSize}px;"
+          >
             {@html getCachedMarkdown(msg)}
           </div>
         </div>
