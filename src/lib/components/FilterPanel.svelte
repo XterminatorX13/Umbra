@@ -10,6 +10,7 @@
         ChevronDown,
     } from "lucide-svelte";
     import { fly, fade } from "svelte/transition";
+    import { portal } from "../actions.js";
     import Calendar from "./Calendar.svelte";
 
     export let conversations = [];
@@ -299,6 +300,7 @@
                         <div
                             class="calendar-fixed-wrapper"
                             style="top: {calendarPos.top}px; left: {calendarPos.left}px"
+                            use:portal
                         >
                             <Calendar
                                 value={filters.dateFrom}
@@ -330,6 +332,7 @@
                         <div
                             class="calendar-fixed-wrapper"
                             style="top: {calendarPos.top}px; left: {calendarPos.left}px"
+                            use:portal
                         >
                             <Calendar
                                 value={filters.dateTo}
