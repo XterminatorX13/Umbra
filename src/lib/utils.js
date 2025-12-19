@@ -205,14 +205,30 @@ function extractSourcesFromRefs(refs) {
 
 /**
  * Cleans ChatGPT internal artifacts/tools syntax and resolves citations.
- * Example entity: entity["car", "BYD Yangwang U9", 0] -> BYD Yangwang U9
- * Example citation: citeturn0search3 -> (Removed)
+ * Example entity: entity["car", "BYD Yangwang U9", 0] -> BYD Yangwang U9
+ * Example citation: citeturn0search3 -> (Removed)
  * Example bracket: 【17†L65-L73】 -> [17](url) or [17]
+ * Example contextList: :::contextList ... ::: -> contents only
+ * Example image_fetch: 【{"image_fetch": "..."}】 -> (Removed)
+ * Example video marker: videoTitle...turn0search# -> (Removed)
  */
 function cleanChatGPTArtifacts(text, citations = [], safeUrls = []) {
     if (!text) return text;
 
-    // 1. Replace Entities: entity[...] -> extracted name
+    // 1. Remove :::contextList ... ::: blocks (keep content inside)
+    text = text.replace(/:::contextList\s*/gi, '');
+    text = text.replace(/:::\s*/g, '');
+
+    // 2. Remove 【{"image_fetch": "..."}】 commands
+    text = text.replace(/【\s*\{[^】]*"image_fetch"[^】]*\}\s*】/g, '');
+
+    // 3. Remove video markers: video...turn#search# (e.g., videoComo...turn0search6)
+    text = text.replace(/video[^\s]*turn\d+search\d+/gi, '');
+
+    // 4. Remove residual turn#search# markers (e.g., turn0search3, citeturn0search6)
+    text = text.replace(/\s*(?:cite)?turn\d+search\d+\s*/gi, ' ');
+
+    // 5. Replace Entities: entity[...] -> extracted name
     text = text.replace(/entity(.*?)/g, (match, content) => {
         try {
             const parsed = JSON.parse(content);
@@ -225,10 +241,10 @@ function cleanChatGPTArtifacts(text, citations = [], safeUrls = []) {
         }
     });
 
-    // 2. Remove Internal Citations: cite...
+    // 6. Remove Internal Citations: cite...
     text = text.replace(/cite.*?/g, '');
 
-    // 3. Resolve Bracket Citations: 【17†source】 using safe_urls
+    // 7. Resolve Bracket Citations: 【17†source】 using safe_urls
     text = text.replace(/【(\d+)(?:†[^】]*)?】/g, (match, indexStr) => {
         const index = parseInt(indexStr, 10);
 
@@ -262,5 +278,9 @@ function cleanChatGPTArtifacts(text, citations = [], safeUrls = []) {
         return '';
     });
 
-    return text;
+    // 8. Clean up excessive whitespace from removals
+    text = text.replace(/\n{3,}/g, '\n\n');
+    text = text.replace(/  +/g, ' ');
+
+    return text.trim();
 }
