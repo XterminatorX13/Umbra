@@ -238,6 +238,23 @@
                 </div>
             </div>
         </div>
+
+        <!-- Footer with Apply Button -->
+        <div class="popover-footer">
+            <button
+                class="apply-btn"
+                on:click={() => {
+                    dispatch("apply", filters);
+                    close();
+                }}
+            >
+                <span class="apply-icon">✓</span>
+                Aplicar Filtros
+                {#if activeFilterCount > 0}
+                    <span class="apply-count">{activeFilterCount}</span>
+                {/if}
+            </button>
+        </div>
     </div>
 {/if}
 
@@ -527,5 +544,59 @@
     .date-sep {
         color: #444;
         font-size: 12px;
+    }
+
+    .popover-footer {
+        padding: 12px 16px;
+        background: linear-gradient(
+            180deg,
+            transparent,
+            rgba(139, 92, 246, 0.05)
+        );
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .apply-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 20px;
+        background: linear-gradient(135deg, #7c3aed, #6d28d9);
+        border: 1px solid rgba(139, 92, 246, 0.5);
+        border-radius: 10px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow:
+            0 4px 15px rgba(124, 58, 237, 0.3),
+            0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    }
+
+    .apply-btn:hover {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        transform: translateY(-1px);
+        box-shadow:
+            0 6px 20px rgba(124, 58, 237, 0.4),
+            0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+    }
+
+    .apply-btn:active {
+        transform: translateY(0);
+    }
+
+    .apply-icon {
+        font-size: 14px;
+    }
+
+    .apply-count {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 700;
     }
 </style>

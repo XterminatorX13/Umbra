@@ -563,6 +563,10 @@
                 bind:filters={advancedFilters}
                 isOpen={showFilters}
                 on:change={(e) => (advancedFilters = { ...e.detail })}
+                on:apply={(e) => {
+                    advancedFilters = { ...e.detail };
+                    showFilters = false;
+                }}
                 on:close={() => (showFilters = false)}
             />
         </div>
