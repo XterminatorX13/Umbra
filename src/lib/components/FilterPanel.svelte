@@ -564,12 +564,12 @@
 
     .date-btn {
         width: 100%;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 8px;
-        padding: 10px 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 6px 12px;
         font-size: 11px;
-        color: #666;
+        color: #999;
         cursor: pointer;
         transition: all 0.2s;
         text-align: center;
@@ -583,34 +583,43 @@
 
     .date-btn.has-value {
         color: #c4b5fd;
-        border-color: rgba(139, 92, 246, 0.3);
+        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(139, 92, 246, 0.05);
     }
 
     .calendar-popup {
         position: absolute;
-        top: calc(100% + 8px);
-        left: 0;
+        top: calc(100% + 12px);
+        left: 8px; /* More clearance from left edge */
         z-index: 200;
     }
 
     .calendar-popup.right {
         left: auto;
-        right: 0;
+        right: 8px; /* Symmetric */
     }
 
-    .date-sep {
-        color: #444;
-        font-size: 12px;
+    .popover-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px; /* Reduced vertical padding */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        color: var(
+            --color-text-secondary
+        ); /* Less contrasty, more like label */
+        font-weight: 600;
+        font-size: 11px; /* Smaller font */
+        letter-spacing: 0.05em;
+        text-transform: uppercase; /* Inspector style */
     }
 
-    .popover-footer {
-        padding: 12px 16px;
-        background: linear-gradient(
-            180deg,
-            transparent,
-            rgba(139, 92, 246, 0.05)
-        );
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    .popover-header h3 {
+        margin: 0;
+        flex: 1;
+        font-size: inherit;
+        font-weight: inherit;
+        color: #fff; /* Title keeps white */
     }
 
     .apply-btn {
