@@ -229,9 +229,9 @@ function cleanChatGPTArtifacts(text, citations = [], safeUrls = []) {
     text = text.replace(/\s*(?:cite)?turn\d+search\d+\s*/gi, ' ');
 
     // 5. Replace Entities: entity[...] -> extracted name
-    text = text.replace(/entity(.*?)/g, (match, content) => {
+    text = text.replace(/entity\[([^\]]+)\]/g, (match, content) => {
         try {
-            const parsed = JSON.parse(content);
+            const parsed = JSON.parse('[' + content + ']');
             if (Array.isArray(parsed) && parsed.length >= 2) {
                 return parsed[1];
             }
@@ -241,8 +241,8 @@ function cleanChatGPTArtifacts(text, citations = [], safeUrls = []) {
         }
     });
 
-    // 6. Remove Internal Citations: cite...
-    text = text.replace(/cite.*?/g, '');
+    // 6. Remove Internal Citations: cite followed by turn markers (already handled above)
+    // Skipped - turn markers already removed in step 4
 
     // 7. Resolve Bracket Citations: 【17†source】 using safe_urls
     text = text.replace(/【(\d+)(?:†[^】]*)?】/g, (match, indexStr) => {
