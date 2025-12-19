@@ -662,7 +662,7 @@
                     <CategoryDropdown
                         title="Todas"
                         icon="📚"
-                        conversations={searchTerm
+                        conversations={searchTerm || hasActiveAdvancedFilters
                             ? filtered
                             : conversations.filter(
                                   (c) => !metadata[getConvKey(c)]?.deleted,
@@ -681,9 +681,13 @@
                     <CategoryDropdown
                         title="Favoritos"
                         icon="⭐"
-                        conversations={conversations.filter(
-                            (c) => metadata[getConvKey(c)]?.favorite,
-                        )}
+                        conversations={hasActiveAdvancedFilters
+                            ? filtered.filter(
+                                  (c) => metadata[getConvKey(c)]?.favorite,
+                              )
+                            : conversations.filter(
+                                  (c) => metadata[getConvKey(c)]?.favorite,
+                              )}
                         {metadata}
                         {activeId}
                         getSnippet={searchMode === "content"
@@ -711,7 +715,10 @@
                     <div style="padding-left: 10px;">
                         {#each folders as folderName}
                             {@const fm = getFolderMeta(folderName)}
-                            {@const folderConvs = conversations.filter(
+                            {@const baseConvs = hasActiveAdvancedFilters
+                                ? filtered
+                                : conversations}
+                            {@const folderConvs = baseConvs.filter(
                                 (c) =>
                                     metadata[getConvKey(c)]?.folder ===
                                         folderName &&
