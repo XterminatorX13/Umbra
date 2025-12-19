@@ -137,7 +137,18 @@
     }
 
     // Filtered conversations with search AND advanced filters
+    // Explicitly depend on advancedFilters for Svelte reactivity
     $: filtered = (() => {
+        // Force reactivity on advancedFilters changes
+        const {
+            models,
+            hasImageGen,
+            hasWebSearch,
+            isDeepResearch,
+            dateFrom,
+            dateTo,
+        } = advancedFilters;
+
         // If content search and we have search results, use them
         if (
             searchMode === "content" &&
@@ -146,7 +157,23 @@
         ) {
             return searchResults
                 .map((r) => r.conversation)
-                .filter(passesAdvancedFilters);
+                .filter((c) => {
+                    const fm = c.filterMeta;
+                    if (!fm) return true;
+                    if (models.length > 0 && !models.includes(fm.modelSlug))
+                        return false;
+                    if (hasImageGen && !fm.hasImageGen) return false;
+                    if (hasWebSearch && !fm.hasWebSearch) return false;
+                    if (isDeepResearch && !fm.isDeepResearch) return false;
+                    if (dateFrom && fm.createDate && fm.createDate < dateFrom)
+                        return false;
+                    if (dateTo && fm.createDate) {
+                        const endOfDay = new Date(dateTo);
+                        endOfDay.setHours(23, 59, 59, 999);
+                        if (fm.createDate > endOfDay) return false;
+                    }
+                    return true;
+                });
         }
 
         // Standard title-based filtering + advanced filters
@@ -155,8 +182,22 @@
             const meta = metadata[key] ?? {};
             if (meta.deleted) return false;
 
-            // Apply advanced filters first
-            if (!passesAdvancedFilters(c)) return false;
+            // Apply advanced filters
+            const fm = c.filterMeta;
+            if (fm) {
+                if (models.length > 0 && !models.includes(fm.modelSlug))
+                    return false;
+                if (hasImageGen && !fm.hasImageGen) return false;
+                if (hasWebSearch && !fm.hasWebSearch) return false;
+                if (isDeepResearch && !fm.isDeepResearch) return false;
+                if (dateFrom && fm.createDate && fm.createDate < dateFrom)
+                    return false;
+                if (dateTo && fm.createDate) {
+                    const endOfDay = new Date(dateTo);
+                    endOfDay.setHours(23, 59, 59, 999);
+                    if (fm.createDate > endOfDay) return false;
+                }
+            }
 
             if (activeFolder === "__ALL__") {
                 if (searchTerm && searchMode === "title") {
@@ -521,7 +562,7 @@
                 {conversations}
                 bind:filters={advancedFilters}
                 isOpen={showFilters}
-                on:change={() => (advancedFilters = advancedFilters)}
+                on:change={(e) => (advancedFilters = { ...e.detail })}
                 on:close={() => (showFilters = false)}
             />
         </div>
