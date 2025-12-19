@@ -30,21 +30,28 @@
 
     function toggleCalendar(type, event) {
         const rect = event.currentTarget.getBoundingClientRect();
-        const calendarHeight = 320; // Approx height with padding
+        const calendarHeight = 320;
+        const calendarWidth = 240; // 220 + padding
         const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceRight = window.innerWidth - rect.left;
 
-        // Default to below
         let top = rect.bottom + 8;
+        let left = rect.left;
 
-        // If not enough space below, go above
+        // Vertical collision
         if (spaceBelow < calendarHeight) {
-            top = rect.top - calendarHeight + 8; // overlap slightly or margin
+            top = rect.top - calendarHeight + 8;
         }
 
-        calendarPos = {
-            top: top,
-            left: rect.left,
-        };
+        // Horizontal collision (prevent right overflow)
+        if (spaceRight < calendarWidth) {
+            left = window.innerWidth - calendarWidth - 10;
+        }
+
+        // Horizontal collision (prevent left overflow)
+        if (left < 8) left = 8;
+
+        calendarPos = { top, left };
 
         if (type === "from") {
             showCalendarFrom = !showCalendarFrom;
@@ -111,13 +118,31 @@
     function clearFilters() {
         filters = {
             models: [],
-            hasImageGen: null,
-            hasWebSearch: null,
-            isDeepResearch: null,
+            hasImageGen: false,
+            hasWebSearch: false,
+            isDeepResearch: false,
             dateFrom: null,
             dateTo: null,
         };
+        showCalendarFrom = false;
+        showCalendarTo = false;
         dispatch("change", filters);
+    }
+
+    // Handle outside clicks for fixed calendar
+    function handleWindowClick(e) {
+        if (!showCalendarFrom && !showCalendarTo) return;
+
+        const target = e.target;
+        // If click is inside calendar or on the toggle buttons, ignore
+        if (
+            target.closest(".calendar-fixed-wrapper") ||
+            target.closest(".date-btn")
+        )
+            return;
+
+        showCalendarFrom = false;
+        showCalendarTo = false;
     }
 
     function close() {
@@ -157,6 +182,8 @@
         return () => window.removeEventListener("click", handleClickOutside);
     });
 </script>
+
+<svelte:window on:click={handleWindowClick} />
 
 {#if isOpen}
     <div
