@@ -1,3 +1,22 @@
+// Model slug to readable name mapping
+const MODEL_NAMES = {
+    'research': 'Deep Research',
+    'gpt-5': 'GPT-5',
+    'o4-mini': 'o4-mini',
+    'gpt-4o': 'GPT-4o',
+    'gpt-4o-mini': 'GPT-4o Mini',
+    'o3': 'o3',
+    'o1': 'o1',
+    'o1-mini': 'o1-mini',
+    'gpt-4': 'GPT-4',
+    'gpt-4-turbo': 'GPT-4 Turbo',
+};
+
+function getModelName(slug) {
+    if (!slug) return 'Unknown';
+    return MODEL_NAMES[slug] || slug;
+}
+
 export function normalizeConversation(conv) {
     const title = conv.title || '(Sem título)';
     const createTime = conv.create_time || null;
@@ -8,9 +27,16 @@ export function normalizeConversation(conv) {
     const searchText = (title + ' ' + messages.map(m => m.textPlain).join(' ')).toLowerCase();
 
     // Ensure we have a stable ID. 
-    // The original script used: externalId || `${title}@@${ctime}`
-    // We'll attach it here for easier access.
     const id = getConvKey({ raw: conv, title, createTime });
+
+    // Extract model/conversation metadata
+    const modelInfo = {
+        modelSlug: conv.default_model_slug || 'unknown',
+        isDeepResearch: conv.default_model_slug === 'research',
+        isStudyMode: conv.is_study_mode || false,
+        memoryScope: conv.memory_scope || null,
+    };
+    modelInfo.modelName = getModelName(modelInfo.modelSlug);
 
     return {
         id,
@@ -19,7 +45,8 @@ export function normalizeConversation(conv) {
         createTime,
         updateTime,
         messages,
-        searchText
+        searchText,
+        modelInfo
     };
 }
 
@@ -84,6 +111,10 @@ function extractMessagesFromMapping(mapping, fallbackTime, safeUrls = []) {
         const contentRefs = msg.metadata?.content_references || [];
         const sources = extractSourcesFromRefs(contentRefs);
 
+        // Extract per-message model info
+        const msgModelSlug = msg.metadata?.model_slug || null;
+        const modelName = msgModelSlug ? (getModelName(msgModelSlug) || msgModelSlug) : null;
+
         msgs.push({
             id: msg.id || key,
             role,
@@ -91,7 +122,9 @@ function extractMessagesFromMapping(mapping, fallbackTime, safeUrls = []) {
             textPlain: text,
             timestamp: ts,
             tools,
-            sources // Per-message sources for display
+            sources,
+            modelSlug: msgModelSlug,
+            modelName: modelName
         });
     }
 

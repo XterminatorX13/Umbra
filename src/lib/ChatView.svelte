@@ -420,34 +420,42 @@
             class="msg-content prose-invert"
             style="font-size: {fontSize}px;"
           >
-            <!-- Tool Badges (Deep Research, Python, etc) -->
-            {#if msg.tools && msg.tools.length > 0}
+            <!-- Model & Tool Badges (GPT-5, Deep Research, Python, etc) -->
+            {#if msg.role === "assistant" && (msg.modelName || (msg.tools && msg.tools.length > 0))}
               <div class="tool-badge-container">
-                {#each msg.tools as tool}
-                  {#if tool.label.includes("Sources") && msg.sources}
-                    <button
-                      class="tool-badge clickable"
-                      on:click={() => {
-                        currentMessageSources = msg.sources;
-                        sourcesPanelOpen = true;
-                      }}
-                    >
-                      <List size={10} />
-                      {tool.label}
-                    </button>
-                  {:else}
-                    <div class="tool-badge">
-                      {#if tool.icon === "globe"}
-                        <Globe size={10} />
-                      {:else if tool.icon === "terminal"}
-                        <Zap size={10} />
-                      {:else if tool.icon === "book"}
+                {#if msg.modelName}
+                  <span class="model-badge">
+                    <Sparkles size={10} />
+                    {msg.modelName}
+                  </span>
+                {/if}
+                {#if msg.tools && msg.tools.length > 0}
+                  {#each msg.tools as tool}
+                    {#if tool.label.includes("Sources") && msg.sources}
+                      <button
+                        class="tool-badge clickable"
+                        on:click={() => {
+                          currentMessageSources = msg.sources;
+                          sourcesPanelOpen = true;
+                        }}
+                      >
                         <List size={10} />
-                      {/if}
-                      {tool.label}
-                    </div>
-                  {/if}
-                {/each}
+                        {tool.label}
+                      </button>
+                    {:else}
+                      <div class="tool-badge">
+                        {#if tool.icon === "globe"}
+                          <Globe size={10} />
+                        {:else if tool.icon === "terminal"}
+                          <Zap size={10} />
+                        {:else if tool.icon === "book"}
+                          <List size={10} />
+                        {/if}
+                        {tool.label}
+                      </div>
+                    {/if}
+                  {/each}
+                {/if}
               </div>
             {/if}
 
@@ -602,6 +610,25 @@
                 className="bg-transparent border-none text-right w-24 h-6 text-slate-300 p-0"
               />
             </div>
+
+            <!-- Model Used -->
+            {#if conversation.modelInfo}
+              <div
+                class="flex items-center justify-between p-3 rounded-[10px] bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors"
+              >
+                <div class="flex items-center gap-2 text-slate-500 text-[11px]">
+                  <Sparkles size={14} /> Modelo
+                </div>
+                <span
+                  class="text-[10px] font-semibold px-2 py-1 rounded-full {conversation
+                    .modelInfo.isDeepResearch
+                    ? 'bg-violet-500/20 text-violet-300'
+                    : 'bg-emerald-500/20 text-emerald-300'}"
+                >
+                  {conversation.modelInfo.modelName}
+                </span>
+              </div>
+            {/if}
           </div>
         </div>
 
@@ -807,6 +834,21 @@
     background: rgba(139, 92, 246, 0.15);
     color: #c4b5fd;
     border: 1px solid rgba(139, 92, 246, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+  }
+
+  .model-badge {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.3);
     display: flex;
     align-items: center;
     gap: 4px;
