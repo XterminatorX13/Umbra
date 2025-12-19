@@ -30,10 +30,19 @@
 
     function toggleCalendar(type, event) {
         const rect = event.currentTarget.getBoundingClientRect();
-        // Adjust for window edges if needed, but simple bottom-left alignment is usually fine
-        // Fixed positioning relative to viewport
+        const calendarHeight = 320; // Approx height with padding
+        const spaceBelow = window.innerHeight - rect.bottom;
+
+        // Default to below
+        let top = rect.bottom + 8;
+
+        // If not enough space below, go above
+        if (spaceBelow < calendarHeight) {
+            top = rect.top - calendarHeight + 8; // overlap slightly or margin
+        }
+
         calendarPos = {
-            top: rect.bottom + 8,
+            top: top,
             left: rect.left,
         };
 
