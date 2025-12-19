@@ -874,13 +874,14 @@
   .image-gen-card {
     background: linear-gradient(
       135deg,
-      rgba(236, 72, 153, 0.1),
-      rgba(167, 139, 250, 0.1)
+      rgba(139, 92, 246, 0.08),
+      rgba(124, 58, 237, 0.08)
     );
-    border: 1px solid rgba(236, 72, 153, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.25);
     border-radius: 12px;
     overflow: hidden;
     margin-top: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
 
   .image-gen-header {
@@ -888,9 +889,13 @@
     align-items: center;
     gap: 8px;
     padding: 10px 14px;
-    background: rgba(236, 72, 153, 0.15);
-    border-bottom: 1px solid rgba(236, 72, 153, 0.2);
-    color: #f9a8d4;
+    background: linear-gradient(
+      to right,
+      rgba(139, 92, 246, 0.15),
+      rgba(139, 92, 246, 0.05)
+    );
+    border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+    color: #c4b5fd;
   }
 
   .image-gen-label {
@@ -898,16 +903,21 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+    background: linear-gradient(to right, #c4b5fd, #a78bfa);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .image-gen-size {
     margin-left: auto;
     font-size: 10px;
     font-weight: 600;
-    color: #a78bfa;
-    background: rgba(167, 139, 250, 0.2);
+    color: #ede9fe;
+    background: rgba(139, 92, 246, 0.3);
     padding: 2px 8px;
     border-radius: 4px;
+    border: 1px solid rgba(139, 92, 246, 0.2);
   }
 
   .image-gen-prompt {
@@ -916,6 +926,7 @@
     line-height: 1.6;
     color: #e2e8f0;
     font-style: italic;
+    background: rgba(0, 0, 0, 0.2);
   }
 
   .tool-badge.clickable {

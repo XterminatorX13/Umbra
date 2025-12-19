@@ -64,6 +64,17 @@ export function normalizeConversation(conv) {
     };
     modelInfo.modelName = getModelName(modelInfo.modelSlug);
 
+    // Aggregate filter metadata at conversation level
+    const filterMeta = {
+        hasImageGen: messages.some(m => m.imageGen !== null && m.imageGen !== undefined),
+        hasWebSearch: messages.some(m => m.tools?.some(t => t.type === 'browser')),
+        hasSources: messages.some(m => m.sources?.length > 0),
+        modelSlug: modelInfo.modelSlug,
+        modelName: modelInfo.modelName,
+        isDeepResearch: modelInfo.isDeepResearch,
+        createDate: createTime ? new Date(createTime * 1000) : null
+    };
+
     return {
         id,
         raw: conv,
@@ -72,7 +83,8 @@ export function normalizeConversation(conv) {
         updateTime,
         messages,
         searchText,
-        modelInfo
+        modelInfo,
+        filterMeta
     };
 }
 

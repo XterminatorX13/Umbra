@@ -3,6 +3,7 @@
     import { getConvKey } from "./utils";
     import CategoryDropdown from "./components/CategoryDropdown.svelte";
     import InputModal from "./components/InputModal.svelte";
+    import FilterPanel from "./components/FilterPanel.svelte";
 
     export let conversations = [];
     export let metadata = {};
@@ -21,6 +22,17 @@
     let searchTerm = "";
     let searchMode = "title"; // 'title' or 'content'
     let searchResults = []; // Stores { conversation, snippet } pairs for content search
+
+    // Advanced filter state
+    let showFilters = false;
+    let advancedFilters = {
+        models: [],
+        hasImageGen: null,
+        hasWebSearch: null,
+        isDeepResearch: null,
+        dateFrom: null,
+        dateTo: null,
+    };
 
     // Modal state for folder management
     let modalOpen = false;
@@ -80,7 +92,51 @@
     );
     $: folders = Array.from(foldersSet).sort();
 
-    // Filtered conversations with search
+    // Advanced filter computed properties
+    $: hasActiveAdvancedFilters =
+        advancedFilters.models.length > 0 ||
+        advancedFilters.hasImageGen ||
+        advancedFilters.hasWebSearch ||
+        advancedFilters.isDeepResearch ||
+        advancedFilters.dateFrom ||
+        advancedFilters.dateTo;
+
+    $: activeAdvancedFilterCount =
+        advancedFilters.models.length +
+        (advancedFilters.hasImageGen ? 1 : 0) +
+        (advancedFilters.hasWebSearch ? 1 : 0) +
+        (advancedFilters.isDeepResearch ? 1 : 0) +
+        (advancedFilters.dateFrom || advancedFilters.dateTo ? 1 : 0);
+
+    // Apply advanced filters to a conversation
+    function passesAdvancedFilters(conv) {
+        const fm = conv.filterMeta;
+        if (!fm) return true; // No filter metadata, pass through
+
+        // Model filter
+        if (advancedFilters.models.length > 0) {
+            if (!advancedFilters.models.includes(fm.modelSlug)) return false;
+        }
+
+        // Feature filters
+        if (advancedFilters.hasImageGen && !fm.hasImageGen) return false;
+        if (advancedFilters.hasWebSearch && !fm.hasWebSearch) return false;
+        if (advancedFilters.isDeepResearch && !fm.isDeepResearch) return false;
+
+        // Date filters
+        if (advancedFilters.dateFrom && fm.createDate) {
+            if (fm.createDate < advancedFilters.dateFrom) return false;
+        }
+        if (advancedFilters.dateTo && fm.createDate) {
+            const endOfDay = new Date(advancedFilters.dateTo);
+            endOfDay.setHours(23, 59, 59, 999);
+            if (fm.createDate > endOfDay) return false;
+        }
+
+        return true;
+    }
+
+    // Filtered conversations with search AND advanced filters
     $: filtered = (() => {
         // If content search and we have search results, use them
         if (
@@ -88,14 +144,19 @@
             searchTerm &&
             searchResults.length > 0
         ) {
-            return searchResults.map((r) => r.conversation);
+            return searchResults
+                .map((r) => r.conversation)
+                .filter(passesAdvancedFilters);
         }
 
-        // Standard title-based filtering
+        // Standard title-based filtering + advanced filters
         return conversations.filter((c) => {
             const key = getConvKey(c);
             const meta = metadata[key] ?? {};
             if (meta.deleted) return false;
+
+            // Apply advanced filters first
+            if (!passesAdvancedFilters(c)) return false;
 
             if (activeFolder === "__ALL__") {
                 if (searchTerm && searchMode === "title") {
@@ -414,16 +475,56 @@
             </div>
         </div>
 
-        <!-- Quick search -->
-        <input
-            type="text"
-            bind:value={searchTerm}
-            placeholder={searchMode === "title"
-                ? "Buscar por título..."
-                : "Buscar no conteúdo..."}
-            class="sidebar-search-input"
-            spellcheck="false"
-        />
+        <!-- Quick search with Filter -->
+        <div class="search-container" style="position: relative;">
+            <div class="search-row">
+                <input
+                    type="text"
+                    bind:value={searchTerm}
+                    placeholder={searchMode === "title"
+                        ? "Buscar por título..."
+                        : "Buscar no conteúdo..."}
+                    class="sidebar-search-input"
+                    spellcheck="false"
+                />
+                <button
+                    class="filter-trigger"
+                    class:active={showFilters || hasActiveAdvancedFilters}
+                    on:click|stopPropagation={() =>
+                        (showFilters = !showFilters)}
+                    title="Filtros avançados"
+                >
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <polygon
+                            points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"
+                        ></polygon>
+                    </svg>
+                    {#if activeAdvancedFilterCount > 0}
+                        <span class="filter-badge"
+                            >{activeAdvancedFilterCount}</span
+                        >
+                    {/if}
+                </button>
+            </div>
+
+            <!-- Filter Panel Popover -->
+            <FilterPanel
+                {conversations}
+                bind:filters={advancedFilters}
+                isOpen={showFilters}
+                on:change={() => (advancedFilters = advancedFilters)}
+                on:close={() => (showFilters = false)}
+            />
+        </div>
 
         <!-- Search mode toggle -->
         <div class="search-toggle" style="margin-top: 6px;">
@@ -676,5 +777,64 @@
     kbd {
         font-family: monospace;
         font-size: 9px;
+    }
+
+    /* Search Row with Filter */
+    .search-row {
+        display: flex;
+        gap: 6px;
+        align-items: stretch;
+    }
+
+    .search-row .sidebar-search-input {
+        flex: 1;
+    }
+
+    .filter-trigger {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border-light);
+        background: rgba(0, 0, 0, 0.2);
+        color: var(--color-text-tertiary);
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+    }
+
+    .filter-trigger:hover {
+        background: rgba(139, 92, 246, 0.1);
+        border-color: rgba(139, 92, 246, 0.3);
+        color: #c4b5fd;
+    }
+
+    .filter-trigger.active {
+        background: linear-gradient(
+            135deg,
+            rgba(139, 92, 246, 0.15),
+            rgba(124, 58, 237, 0.1)
+        );
+        border-color: rgba(139, 92, 246, 0.4);
+        color: #a78bfa;
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+    }
+
+    .filter-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        background: linear-gradient(135deg, #a78bfa, #7c3aed);
+        color: #fff;
+        font-size: 9px;
+        font-weight: 700;
+        min-width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
     }
 </style>
