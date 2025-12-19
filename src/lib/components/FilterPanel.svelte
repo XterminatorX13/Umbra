@@ -31,25 +31,29 @@
     function toggleCalendar(type, event) {
         const rect = event.currentTarget.getBoundingClientRect();
         const calendarHeight = 320;
-        const calendarWidth = 240; // 220 + padding
-        const spaceBelow = window.innerHeight - rect.bottom;
-        const spaceRight = window.innerWidth - rect.left;
+        const calendarWidth = 240;
 
-        let top = rect.bottom + 8;
-        let left = rect.left;
+        // Strategy: Float to the RIGHT of the button (into the main content area)
+        // This avoids sidebar clipping entirely.
+        let left = rect.right + 12;
+        let top = rect.top; // Default: align with top of input
 
-        // Vertical collision
-        if (spaceBelow < calendarHeight) {
-            top = rect.top - calendarHeight + 8;
+        // Vertical collision: Check if fits below top
+        if (window.innerHeight - top < calendarHeight) {
+            // If hitting bottom, align bottom edge with bottom of input (or push up)
+            // Let's try aligning bottom of calendar with bottom of input for a "drop-up" feel
+            top = rect.bottom - calendarHeight;
+
+            // Hard floor check
+            if (top < 10) top = 10;
         }
 
-        // Horizontal collision (prevent right overflow)
-        if (spaceRight < calendarWidth) {
+        // Horizontal collision: Check if it goes off-screen right
+        if (left + calendarWidth > window.innerWidth) {
+            // If strictly no space on right, flip to left?
+            // Or align to window right edge
             left = window.innerWidth - calendarWidth - 10;
         }
-
-        // Horizontal collision (prevent left overflow)
-        if (left < 8) left = 8;
 
         calendarPos = { top, left };
 
