@@ -20,6 +20,12 @@
     MessageSquare,
     User,
     Bot,
+    Zap,
+    ArrowUpRight,
+    Paperclip,
+    Globe,
+    Sparkles,
+    Circle,
   } from "lucide-svelte";
   import BorderBeam from "./components/BorderBeam.svelte";
   import RichTextEditor from "./components/RichTextEditor.svelte";
@@ -38,6 +44,7 @@
   let showNotesPreview = false;
   let copySuccess = false;
   let fontSize = localStorage.getItem("chat-font-size") || "13";
+  let inputText = "";
 
   // Lazy loading state
   const MESSAGES_PER_PAGE = 20;
@@ -383,14 +390,62 @@
       <div style="height: 50px;"></div>
     </div>
 
-    <!-- Hotkeys hint -->
-    <div
-      style="padding: 8px 20px; border-top: 1px solid var(--border); background: var(--bg-deep); font-size: 10px; color: var(--color-text-secondary); display: flex; gap: 16px; flex-wrap: wrap;"
-    >
-      <span><kbd>Ctrl+S</kbd> Salvar</span>
-      <span><kbd>Ctrl+Shift+C</kbd> Copiar</span>
-      <span><kbd>B</kbd> Propriedades</span>
-      <span><kbd>Esc</kbd> Voltar</span>
+    <!-- Floating Input Area -->
+    <div class="px-8 pb-8 pt-2 flex-shrink-0">
+      <div class="max-w-3xl mx-auto relative group">
+        <!-- Glow Behind -->
+        <div
+          class="absolute -inset-1 bg-gradient-to-r from-violet-600/30 via-fuchsia-600/30 to-violet-600/30 rounded-[24px] blur-xl opacity-0 group-focus-within:opacity-100 transition duration-700"
+        ></div>
+
+        <div
+          class="relative z-10 bg-[#121212]/95 backdrop-blur-2xl border border-white/[0.08] rounded-[20px] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.6)] transition-all overflow-hidden group-focus-within:border-violet-500/40 group-focus-within:ring-1 group-focus-within:ring-violet-500/20"
+        >
+          <textarea
+            bind:value={inputText}
+            placeholder="Ask Aurora..."
+            class="w-full bg-transparent border-none text-slate-200 px-5 pt-5 pb-2 max-h-[300px] resize-none focus:ring-0 placeholder:text-slate-600 font-normal text-[15px] leading-relaxed custom-scrollbar tracking-wide focus:outline-none"
+            rows="1"
+            style="min-height: 60px;"
+          ></textarea>
+
+          <div class="px-3 pb-3 flex items-center justify-between">
+            <div class="flex items-center gap-1">
+              <button
+                class="p-2 rounded-lg text-slate-500 hover:bg-white/5 hover:text-slate-200 transition-colors tooltip"
+                title="Attach"><Paperclip size={16} /></button
+              >
+              <button
+                class="p-2 rounded-lg text-slate-500 hover:bg-white/5 hover:text-slate-200 transition-colors tooltip"
+                title="Web Search"><Globe size={16} /></button
+              >
+              <button
+                class="p-2 rounded-lg text-slate-500 hover:bg-white/5 hover:text-violet-400 transition-colors flex items-center gap-2 group/btn"
+              >
+                <Sparkles size={16} class="group-hover/btn:animate-pulse" />
+              </button>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <button
+                class="w-8 h-8 rounded-lg transition-all duration-300 flex items-center justify-center {inputText.trim()
+                  ? 'bg-violet-600 text-white shadow-[0_0_15px_rgba(124,58,237,0.5)] hover:bg-violet-500 hover:shadow-[0_0_20px_rgba(124,58,237,0.7)] hover:scale-105'
+                  : 'bg-white/5 text-slate-600 cursor-not-allowed'}"
+              >
+                <ArrowUpRight size={18} strokeWidth={2.5} />
+              </button>
+            </div>
+          </div>
+        </div>
+        <div
+          class="flex justify-between mt-3 px-4 opacity-40 text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em]"
+        >
+          <span>Aurora PKM</span>
+          <span class="flex items-center gap-1"
+            ><Circle size={6} class="fill-green-500 text-green-500" /> Secure</span
+          >
+        </div>
+      </div>
     </div>
   </div>
 
@@ -406,123 +461,116 @@
       on:click|stopPropagation
     >
       <div class="sidebar-header">
-        <span style="display:flex; align-items:center; gap:8px;"
-          ><FileText size={16} /> Propriedades</span
+        <span
+          class="font-semibold text-xs text-slate-400 tracking-wide uppercase"
+          >Inspector</span
         >
         <button on:click={() => (showSidebar = false)} class="sidebar-close">
-          <X size={16} />
+          <X size={14} />
         </button>
       </div>
 
-      <!-- Settings: Stop propagation manually if needed or wrap content -->
-      <!-- Folder -->
-      <div class="sidebar-section">
-        <div class="sidebar-label">
-          <span
-            style="display:flex; align-items:center; gap:4px; margin-bottom:8px;"
+      <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-8">
+        <!-- Summary Card (Private Notes) -->
+        <div class="relative group">
+          <div
+            class="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 rounded-xl blur-md opacity-40 group-hover:opacity-60 transition-opacity"
+          ></div>
+          <div
+            class="relative p-5 rounded-xl bg-[#141414]/80 border border-white/5 shadow-xl backdrop-blur-md"
           >
-            <Folder size={12} /> Pasta
-          </span>
-          <SpotlightInput
-            bind:value={folder}
-            on:blur={saveMeta}
-            placeholder="Ex.: Trabalho"
-            className="mb-2"
-          />
+            <div class="flex items-center gap-2 mb-3">
+              <FileText size={14} class="text-violet-400" />
+              <h4
+                class="text-[11px] font-bold text-slate-300 uppercase tracking-wider"
+              >
+                Notas Privadas
+              </h4>
+            </div>
+            <div
+              class="text-[12px] text-slate-400 leading-relaxed font-normal sidebar-notes-wrapper"
+            >
+              <RichTextEditor
+                content={notes}
+                on:change={(e) => {
+                  notes = e.detail;
+                  saveMeta();
+                }}
+                placeholder="Adicione suas notas..."
+              />
+            </div>
+          </div>
         </div>
-      </div>
 
-      <!-- ... (skipping other sections for brevity in replacement if possible, but replace_file_content needs contiguous)-->
-      <!-- Actually, I need to replace the top part and the bottom part separately or use multi_replace. -->
-      <!-- Let's use multi_replace to be precise. -->
-
-      <!-- Tags -->
-      <div class="sidebar-section">
-        <div class="sidebar-label">
-          <span
-            style="display:flex; align-items:center; gap:4px; margin-bottom:8px;"
+        <!-- Details Grid -->
+        <div>
+          <h4
+            class="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 pl-1"
           >
-            <Tags size={12} /> Tags
-          </span>
+            Details
+          </h4>
+          <div class="grid grid-cols-1 gap-2">
+            <div
+              class="flex items-center justify-between p-3 rounded-[10px] bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors"
+            >
+              <div class="flex items-center gap-2 text-slate-500 text-[11px]">
+                <MessageSquare size={14} /> Mensagens
+              </div>
+              <span class="text-[11px] font-mono text-slate-300"
+                >{conversation.messages.length}</span
+              >
+            </div>
+            <div
+              class="flex items-center justify-between p-3 rounded-[10px] bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors"
+            >
+              <div class="flex items-center gap-2 text-slate-500 text-[11px]">
+                <Folder size={14} /> Pasta
+              </div>
+              <SpotlightInput
+                bind:value={folder}
+                on:blur={saveMeta}
+                placeholder="Sem pasta"
+                className="bg-transparent border-none text-right w-24 h-6 text-slate-300 p-0"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <h4
+            class="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 pl-1"
+          >
+            Tags
+          </h4>
           <SpotlightInput
             bind:value={tags}
             on:blur={saveMeta}
-            placeholder="importante, ideia"
-            className="mb-2"
+            placeholder="Adicionar tags..."
+            className="mb-3 w-full bg-[#1a1a1a] border border-white/5 rounded-lg px-3 py-2 text-slate-300 text-xs"
           />
+          <div class="flex flex-wrap gap-2">
+            {#if tags}
+              {#each tags.split(",").filter((t) => t.trim()) as t}
+                <span
+                  class="px-2.5 py-1.5 rounded-[8px] bg-[#1a1a1a] text-slate-400 text-[11px] font-medium border border-white/5 hover:border-violet-500/30 hover:text-violet-300 transition-all cursor-default"
+                >
+                  <Tags size={10} class="inline mr-1.5 opacity-40" />{t.trim()}
+                </span>
+              {/each}
+            {/if}
+          </div>
         </div>
-        {#if tags}
-          <div
-            style="margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap;"
+
+        <!-- Save Button -->
+        <div class="pt-4">
+          <button
+            on:click={saveMeta}
+            class="w-full py-2 bg-white/5 hover:bg-violet-600 text-slate-400 hover:text-white rounded-lg text-xs font-semibold uppercase tracking-wider transition-all border border-white/5 hover:shadow-[0_0_15px_rgba(124,58,237,0.4)]"
           >
-            {#each tags
-              .split(",")
-              .map((t) => t.trim())
-              .filter((t) => t) as tag}
-              <span class="tag-badge">{tag}</span>
-            {/each}
-          </div>
-        {/if}
-      </div>
-
-      <!-- Stats -->
-      <div class="sidebar-section">
-        <div
-          class="sidebar-label"
-          style="display:flex; align-items:center; gap:4px; margin-bottom:8px;"
-        >
-          <BarChart2 size={12} /> Estatísticas
+            Salvar Alterações
+          </button>
         </div>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <span class="stat-value">{conversation.messages.length}</span>
-            <span class="stat-label">total</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value"
-              >{conversation.messages.filter((m) => m.role === "user")
-                .length}</span
-            >
-            <span class="stat-label">você</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value"
-              >{conversation.messages.filter((m) => m.role === "assistant")
-                .length}</span
-            >
-            <span class="stat-label">GPT</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Notes -->
-      <div
-        class="sidebar-section"
-        style="flex: 1; display: flex; flex-direction: column; overflow: hidden;"
-      >
-        <div
-          class="sidebar-label"
-          style="display:flex; align-items:center; gap:4px; margin-bottom:8px;"
-        >
-          <FileText size={12} /> Notas Privadas
-        </div>
-        <div style="flex: 1; overflow-y: auto; padding-right: 4px;">
-          <RichTextEditor
-            content={notes}
-            on:change={(e) => {
-              notes = e.detail;
-              saveMeta();
-            }}
-            placeholder="Suas reflexões... (Selecione texto para formatar)"
-          />
-        </div>
-      </div>
-
-      <!-- Save Button -->
-      <div style="padding: 12px;">
-        <button on:click={saveMeta} class="sidebar-save-btn">
-          <Save size={14} style="display:inline; margin-right:6px;" /> Salvar
-        </button>
       </div>
     </div>
   {/if}
