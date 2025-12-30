@@ -1,6 +1,7 @@
 <script>
   import { createEventDispatcher, onMount, onDestroy, tick } from "svelte";
   import { getConvKey } from "./utils";
+  import { addToast } from "./stores.js";
   import { parseMarkdown } from "./utils/markdown.js";
   import "./styles/markdown.css";
   import {
@@ -35,15 +36,23 @@
   import EmptyState from "./components/EmptyState.svelte";
   import ShineBorder from "./components/ShineBorder.svelte";
   import SourcesPanel from "./components/SourcesPanel.svelte";
+  import WikiHoverPreview from "./components/WikiHoverPreview.svelte";
 
   export let conversation = null;
   export let meta = {};
+  export let folders = [];
 
   const dispatch = createEventDispatcher();
 
   let notes = meta.notes ?? "";
   let folder = meta.folder ?? "";
   let tags = (meta.tags ?? []).join(", ");
+
+  // Semantic Compass State
+  let parentConcept = meta.parent ?? "";
+  let childConcepts = (meta.children ?? []).join(", ");
+  let lateralConcepts = (meta.lateral ?? []).join(", ");
+
   let showNotesPreview = false;
   let copySuccess = false;
   let fontSize = localStorage.getItem("chat-font-size") || "13";
@@ -157,6 +166,9 @@
     notes = meta.notes ?? "";
     folder = meta.folder ?? "";
     tags = (meta.tags ?? []).join(", ");
+    parentConcept = meta.parent ?? "";
+    childConcepts = (meta.children ?? []).join(", ");
+    lateralConcepts = (meta.lateral ?? []).join(", ");
   }
 
   function toggleFav() {
@@ -170,12 +182,33 @@
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
+    const childrenArr = childConcepts
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    const lateralArr = lateralConcepts
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+
     dispatch("updateMeta", {
       id: getConvKey(conversation),
       folder: folder.trim(),
       tags: tagArr,
       notes,
+      parent: parentConcept.trim(),
+      children: childrenArr,
+      lateral: lateralArr,
     });
+    addToast("Alterações salvas!", "success");
+  }
+
+  // Folder helper
+  function handleFolderKeydown(e) {
+    if (e.key === "Enter") {
+      e.target.blur(); // Forces blur which triggers save
+      saveMeta();
+    }
   }
 
   function copyConversation() {
@@ -266,6 +299,82 @@
 
   function deselect() {
     dispatch("deselect");
+  }
+
+  // --- Wiki-Link Interaction ---
+  let hoverConcept = "";
+  let hoverX = 0;
+  let hoverY = 0;
+  let isHovering = false;
+  let hoverTimeout;
+
+  function handleMessageClick(e) {
+    const target = e.target.closest(".wiki-link");
+    if (target) {
+      e.preventDefault();
+      const concept = target.dataset.concept;
+      console.log("Wiki link clicked:", concept);
+      dispatch("wikiLinkClick", { concept });
+    }
+  }
+
+  function handleMessageMouseOver(e) {
+    const target = e.target.closest(".wiki-link");
+    if (target) {
+      const concept = target.dataset.concept;
+      const rect = target.getBoundingClientRect();
+
+      clearTimeout(hoverTimeout);
+      hoverTimeout = setTimeout(() => {
+        hoverConcept = concept;
+        hoverX = rect.left;
+        hoverY = rect.bottom; // Show below the link
+        isHovering = true;
+      }, 300); // 300ms delay for intent
+    }
+  }
+
+  function handleMessageMouseOut(e) {
+    const target = e.target.closest(".wiki-link");
+    if (target) {
+      clearTimeout(hoverTimeout);
+      isHovering = false;
+    }
+  }
+
+  async function sendMessage() {
+    if (!inputText.trim() || !conversation) return;
+
+    const newMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      textPlain: inputText,
+      textMarkdown: inputText, // Render logic uses this or textPlain
+      createTime: Date.now() / 1000,
+    };
+
+    // Optimistic update
+    conversation.messages = [...conversation.messages, newMessage];
+
+    // Clear input
+    const text = inputText;
+    inputText = "";
+
+    // Scroll to bottom
+    await tick();
+    if (chatContainer) {
+      chatContainer.scrollTo({
+        top: chatContainer.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }
+
+  function handleInputKeydown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
   }
 
   onMount(() => {
@@ -420,6 +529,12 @@
           <div
             class="msg-content prose-invert"
             style="font-size: {fontSize}px;"
+            on:click={handleMessageClick}
+            on:mouseover={handleMessageMouseOver}
+            on:mouseout={handleMessageMouseOut}
+            on:focus={() => {}}
+            on:blur={() => {}}
+            role="article"
           >
             <!-- Model & Tool Badges (GPT-5, Deep Research, Python, etc) -->
             {#if msg.role === "assistant" && (msg.modelName || (msg.tools && msg.tools.length > 0))}
@@ -495,6 +610,7 @@
         >
           <textarea
             bind:value={inputText}
+            on:keydown={handleInputKeydown}
             placeholder="Ask Aurora..."
             class="w-full bg-transparent border-none text-slate-200 px-5 pt-5 pb-2 max-h-[300px] resize-none focus:ring-0 placeholder:text-slate-600 font-normal text-[15px] leading-relaxed custom-scrollbar tracking-wide focus:outline-none"
             rows="1"
@@ -520,6 +636,7 @@
 
             <div class="flex items-center gap-3">
               <button
+                on:click={sendMessage}
                 class="w-8 h-8 rounded-lg transition-all duration-300 flex items-center justify-center {inputText.trim()
                   ? 'bg-violet-600 text-white shadow-[0_0_15px_rgba(124,58,237,0.5)] hover:bg-violet-500 hover:shadow-[0_0_20px_rgba(124,58,237,0.7)] hover:scale-105'
                   : 'bg-white/5 text-slate-600 cursor-not-allowed'}"
@@ -550,7 +667,8 @@
       role="dialog"
       aria-modal="true"
       aria-label="Propriedades da Conversa"
-      on:click|stopPropagation
+      on:keydown={(e) => e.key === "Escape" && (showSidebar = false)}
+      tabindex="-1"
     >
       <div class="sidebar-header">
         <span
@@ -618,12 +736,20 @@
               <div class="flex items-center gap-2 text-slate-500 text-[11px]">
                 <Folder size={14} /> Pasta
               </div>
-              <SpotlightInput
+              <input
+                type="text"
                 bind:value={folder}
+                list="folder-list"
                 on:blur={saveMeta}
+                on:keydown={handleFolderKeydown}
                 placeholder="Sem pasta"
-                className="bg-transparent border-none text-right w-24 h-6 text-slate-300 p-0"
+                class="bg-transparent border border-violet-500/30 text-right w-24 h-6 text-slate-300 px-2 rounded text-xs"
               />
+              <datalist id="folder-list">
+                {#each folders as f}
+                  <option value={f} />
+                {/each}
+              </datalist>
             </div>
 
             <!-- Model Used -->
@@ -718,6 +844,82 @@
           </div>
         {/if}
 
+        <!-- Semantic Compass -->
+        <div>
+          <h4
+            class="text-[10px] font-bold text-violet-400 uppercase tracking-widest mb-3 pl-1 flex items-center gap-2"
+          >
+            <Sparkles size={12} /> Semantic Compass
+          </h4>
+
+          <div class="space-y-3 pl-2 border-l border-violet-500/20 ml-1">
+            <!-- Parent -->
+            <div>
+              <label
+                class="text-[10px] text-slate-500 uppercase tracking-wider mb-1 block"
+                >Parent (MOC)</label
+              >
+              <SpotlightInput
+                bind:value={parentConcept}
+                on:blur={(e) => {
+                  parentConcept = e.detail.currentValue;
+                  saveMeta();
+                }}
+                on:submit={(e) => {
+                  parentConcept = e.detail.currentValue;
+                  saveMeta();
+                }}
+                placeholder="Ex: Macro Economics"
+                className="w-full bg-[#1a1a1a] border border-white/5 rounded-lg px-2 py-1.5 text-slate-300 text-xs focus:border-violet-500/50 transition-colors"
+              />
+            </div>
+
+            <!-- Children -->
+            <div>
+              <label
+                class="text-[10px] text-slate-500 uppercase tracking-wider mb-1 block"
+                >Children</label
+              >
+              <SpotlightInput
+                bind:value={childConcepts}
+                on:blur={(e) => {
+                  childConcepts = e.detail.currentValue;
+                  saveMeta();
+                }}
+                on:submit={(e) => {
+                  childConcepts = e.detail.currentValue;
+                  saveMeta();
+                }}
+                placeholder="Ex: Inflation, Rates"
+                className="w-full bg-[#1a1a1a] border border-white/5 rounded-lg px-2 py-1.5 text-slate-300 text-xs focus:border-violet-500/50 transition-colors"
+              />
+            </div>
+
+            <!-- Lateral -->
+            <div>
+              <label
+                class="text-[10px] text-slate-500 uppercase tracking-wider mb-1 block"
+                >Lateral</label
+              >
+              <SpotlightInput
+                bind:value={lateralConcepts}
+                on:blur={(e) => {
+                  lateralConcepts = e.detail.currentValue;
+                  saveMeta();
+                }}
+                on:submit={(e) => {
+                  lateralConcepts = e.detail.currentValue;
+                  saveMeta();
+                }}
+                placeholder="Ex: Geopolitics"
+                className="w-full bg-[#1a1a1a] border border-white/5 rounded-lg px-2 py-1.5 text-slate-300 text-xs focus:border-violet-500/50 transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="h-px bg-white/5 my-2"></div>
+
         <!-- Tags -->
         <div>
           <h4
@@ -727,7 +929,14 @@
           </h4>
           <SpotlightInput
             bind:value={tags}
-            on:blur={saveMeta}
+            on:blur={(e) => {
+              tags = e.detail.currentValue;
+              saveMeta();
+            }}
+            on:submit={(e) => {
+              tags = e.detail.currentValue;
+              saveMeta();
+            }}
             placeholder="Adicionar tags..."
             className="mb-3 w-full bg-[#1a1a1a] border border-white/5 rounded-lg px-3 py-2 text-slate-300 text-xs"
           />
@@ -763,6 +972,14 @@
   sources={currentMessageSources}
   isOpen={sourcesPanelOpen}
   on:close={() => (sourcesPanelOpen = false)}
+/>
+
+<!-- Wiki-Link Transclusion Preview -->
+<WikiHoverPreview
+  concept={hoverConcept}
+  x={hoverX}
+  y={hoverY}
+  isOpen={isHovering}
 />
 
 <style>

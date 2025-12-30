@@ -1,51 +1,74 @@
 <script>
-    import { onMount } from "svelte";
+    import { createEventDispatcher } from "svelte";
 
     export let value = "";
     export let placeholder = "";
-    export let type = "text";
     export let className = "";
 
-    let container;
+    const dispatch = createEventDispatcher();
+    let inputElement;
+    let internalValue = value;
 
-    function handleMouseMove(e) {
-        if (!container) return;
-        const rect = container.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        container.style.setProperty("--x", `${x}px`);
-        container.style.setProperty("--y", `${y}px`);
+    // Update internal value when typing
+    function handleInput(e) {
+        internalValue = e.target.value;
+    }
+
+    // On blur, dispatch the current internal value
+    function handleBlur(e) {
+        // Dispatch blur with the actual typed value
+        dispatch("blur", { currentValue: internalValue });
+    }
+
+    function handleKeydown(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            dispatch("submit", { currentValue: internalValue });
+        }
+    }
+
+    // Sync parent value to internal ONLY when value changes from parent AND not focused
+    $: if (
+        value !== internalValue &&
+        inputElement &&
+        !inputElement.matches(":focus")
+    ) {
+        internalValue = value;
     }
 </script>
 
-<!-- svelte-ignore a11y-no-static-element-interactions -->
-<div
-    bind:this={container}
-    on:mousemove={handleMouseMove}
-    class="relative group rounded-lg bg-[var(--layer-2)] p-[1px] overflow-hidden {className}"
->
-    <!-- Spotlight Gradient (Border) -->
-    <div
-        class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-        style="background: radial-gradient(400px circle at var(--x) var(--y), var(--highlight), transparent 40%);"
-    ></div>
-
-    <!-- Inner Input -->
-    <input
-        {type}
-        {value}
-        on:blur
-        on:input={(e) => {
-            value = e.currentTarget.value;
-        }}
-        {placeholder}
-        class="relative w-full h-full bg-[var(--bg-panel)] text-[var(--color-text-primary)] rounded-[7px] px-3 py-2 text-sm outline-none placeholder-[var(--color-text-tertiary)] transition-all duration-200 focus:bg-[var(--layer-1)]"
-    />
-</div>
+<input
+    bind:this={inputElement}
+    type="text"
+    value={internalValue}
+    on:input={handleInput}
+    on:blur={handleBlur}
+    on:keydown={handleKeydown}
+    {placeholder}
+    class="spotlight-input {className}"
+/>
 
 <style>
-    /* Ensure the input sits above the spotlight div but allows clicks */
-    input {
-        z-index: 2;
+    .spotlight-input {
+        position: relative;
+        width: 100%;
+        background: var(--bg-panel, #121212);
+        color: var(--color-text-primary, #e4e4e7);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 13px;
+        outline: none;
+        transition: all 0.2s;
+    }
+
+    .spotlight-input::placeholder {
+        color: var(--color-text-tertiary, #52525b);
+    }
+
+    .spotlight-input:focus {
+        background: var(--layer-1, #1e1e1e);
+        border-color: var(--highlight, #8b5cf6);
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
     }
 </style>

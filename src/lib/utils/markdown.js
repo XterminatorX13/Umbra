@@ -52,11 +52,34 @@ const katexExtension = markedKatex({
     output: 'html'
 });
 
-// 3. Aplicar todas as extensões
+// 3. Wiki Links Extension ([[Concept]] or [[Concept|Label]])
+const wikiLinkExtension = {
+    name: 'wikiLink',
+    level: 'inline',
+    tokenizer(src) {
+        const rule = /^\[\[([^\]\|]+)(?:\|([^\]]+))?\]\]/;
+        const match = rule.exec(src);
+        if (match) {
+            return {
+                type: 'wikiLink',
+                raw: match[0],
+                target: match[1].trim(),
+                label: match[2] ? match[2].trim() : match[1].trim()
+            };
+        }
+    },
+    renderer(token) {
+        const icon = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="wiki-link-icon" style="margin-right: 4px; opacity: 0.7;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>`;
+        return `<a href="#" class="wiki-link" data-concept="${token.target}">${icon}${token.label}</a>`;
+    }
+};
+
+// 4. Aplicar todas as extensões
 marked.use(highlightExtension);
 marked.use(katexExtension);
+marked.use({ extensions: [wikiLinkExtension] });
 
-// 4. Configurar opções do marked
+// 5. Configurar opções do marked
 marked.setOptions({
     breaks: true,           // Quebras de linha → <br>
     gfm: true,              // GitHub Flavored Markdown (tabelas!)

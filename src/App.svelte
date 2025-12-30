@@ -14,6 +14,8 @@
         migrateFromLocalStorage,
         getDbStats,
     } from "./lib/db.js";
+    import Toast from "./lib/components/Toast.svelte";
+    import { toasts } from "./lib/stores.js";
 
     let allConversations = [];
     let metadata = {};
@@ -229,6 +231,16 @@
         saveAllMetadata({});
     }
 
+    // Unified list of folders (Used + Explicit)
+    $: allFolders = Array.from(
+        new Set([
+            ...Object.keys(folderMeta),
+            ...Object.values(metadata)
+                .map((m) => m.folder)
+                .filter(Boolean),
+        ]),
+    ).sort();
+
     // Global hotkeys
     function handleKeydown(e) {
         // Ctrl/Cmd + E = Export metadata
@@ -388,14 +400,14 @@
                 size="sm"
                 variant="secondary"
             >
-                💾 Exportar Meta
+                💾 Exportar
             </GlitchButton>
             <GlitchButton
                 on:click={importMetadata}
                 size="sm"
                 variant="secondary"
             >
-                📥 Importar Meta
+                📥 Importar
             </GlitchButton>
             <GlitchButton
                 on:click={clearAllData}
@@ -411,6 +423,7 @@
         <ChatView
             conversation={activeConversation}
             meta={activeMeta}
+            folders={allFolders}
             on:updateMeta={handleUpdateMeta}
             on:toggleFav={handleToggleFav}
             on:deselect={() => (activeId = null)}
@@ -439,6 +452,8 @@
         else if (action === "stats") console.log("Open stats");
     }}
 />
+
+<Toast {toasts} />
 
 <style>
     /* ===== PERFORMANCE OPTIMIZATIONS ===== */

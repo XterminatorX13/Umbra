@@ -11,8 +11,8 @@ export const db = new Dexie('ChatGPT_PKM');
 db.version(1).stores({
     // Conversations table - stores full conversation data
     conversations: 'id, title, createTime, updateTime',
-    // Metadata table - stores user metadata (folders, favorites, tags, notes)
-    metadata: 'id, folder, favorite, *tags'
+    // Metadata table - stores user metadata (folders, favorites, tags, notes, semantic relations)
+    metadata: 'id, folder, favorite, *tags, parent, *children, *lateral'
 });
 
 /**

@@ -4,6 +4,7 @@
     import CategoryDropdown from "./components/CategoryDropdown.svelte";
     import InputModal from "./components/InputModal.svelte";
     import FilterPanel from "./components/FilterPanel.svelte";
+    import BorderBeam from "./components/BorderBeam.svelte";
 
     export let conversations = [];
     export let metadata = {};
@@ -84,12 +85,13 @@
         return folderMeta[name];
     }
 
-    // Get all unique folders
-    $: foldersSet = new Set(
-        conversations
+    // Get all unique folders (Used + Explicitly Created)
+    $: foldersSet = new Set([
+        ...Object.keys(folderMeta),
+        ...conversations
             .map((c) => metadata[getConvKey(c)]?.folder)
             .filter(Boolean),
-    );
+    ]);
     $: folders = Array.from(foldersSet).sort();
 
     // Advanced filter computed properties
@@ -696,71 +698,109 @@
                         {searchTerm}
                         on:select
                     />
+
+                    <!-- PROJETOS (Folders) -->
+                    <div style="margin: 4px 8px;">
+                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                        <!-- svelte-ignore a11y-no-static-element-interactions -->
+                        <BorderBeam duration={2.5} size={150}>
+                            <!-- svelte-ignore a11y-click-events-have-key-events -->
+                            <!-- svelte-ignore a11y-no-static-element-interactions -->
+                            <div
+                                on:click={() =>
+                                    toggleCategory(
+                                        "folders",
+                                        "__PROJECTS_ROOT__",
+                                    )}
+                                class="category-header"
+                                class:is-open={openCategories.folders[
+                                    "__PROJECTS_ROOT__"
+                                ]}
+                            >
+                                <span class="chevron"
+                                    >{openCategories.folders[
+                                        "__PROJECTS_ROOT__"
+                                    ]
+                                        ? "▼"
+                                        : "▶"}</span
+                                >
+                                <span class="icon">🚀</span>
+                                <span class="title">Projetos</span>
+                                <span class="count">{folders.length}</span>
+
+                                <!-- Add Button (Custom) -->
+                                <button
+                                    on:click|stopPropagation={createNewFolder}
+                                    title="Novo Projeto"
+                                    class="add-btn"
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </BorderBeam>
+
+                        {#if openCategories.folders["__PROJECTS_ROOT__"]}
+                            <div class="projects-list custom-scrollbar">
+                                {#if folders.length === 0}
+                                    <div
+                                        style="padding: 8px; font-size: 11px; color: var(--color-text-tertiary); font-style: italic;"
+                                    >
+                                        Nenhum projeto criado
+                                    </div>
+                                {:else}
+                                    {#each folders as folderName}
+                                        {@const fm = getFolderMeta(folderName)}
+                                        {@const baseConvs =
+                                            hasActiveAdvancedFilters
+                                                ? filtered
+                                                : conversations}
+                                        {@const folderConvs = baseConvs.filter(
+                                            (c) =>
+                                                metadata[getConvKey(c)]
+                                                    ?.folder === folderName &&
+                                                !metadata[getConvKey(c)]
+                                                    ?.deleted,
+                                        )}
+                                        <CategoryDropdown
+                                            title={folderName}
+                                            icon={fm.icon}
+                                            conversations={folderConvs}
+                                            {metadata}
+                                            {activeId}
+                                            on:select
+                                        />
+                                    {/each}
+                                {/if}
+                            </div>
+                        {/if}
+                    </div>
                 </div>
             {/if}
         </div>
 
-        <!-- PASTAS Section -->
-        {#if folders.length > 0}
-            <div style="margin-bottom: 10px;">
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div
-                    on:click={() => toggleSection("pastas")}
-                    style="padding: 6px 16px; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.03em; cursor: pointer; user-select: none; transition: color 0.2s;"
-                >
-                    {openSections.pastas ? "▼" : "▶"} PASTAS ({folders.length})
-                </div>
-                {#if openSections.pastas}
-                    <div style="padding-left: 10px;">
-                        {#each folders as folderName}
-                            {@const fm = getFolderMeta(folderName)}
-                            {@const baseConvs = hasActiveAdvancedFilters
-                                ? filtered
-                                : conversations}
-                            {@const folderConvs = baseConvs.filter(
-                                (c) =>
-                                    metadata[getConvKey(c)]?.folder ===
-                                        folderName &&
-                                    !metadata[getConvKey(c)]?.deleted,
-                            )}
-                            <CategoryDropdown
-                                title={folderName}
-                                icon={fm.icon}
-                                conversations={folderConvs}
-                                {metadata}
-                                {activeId}
-                                on:select
-                            />
-                        {/each}
-                    </div>
-                {/if}
-            </div>
-        {/if}
-    </section>
-
-    <!-- Footer hotkeys hint -->
-    <div
-        style="padding: 8px 16px; border-top: 1px solid var(--border); font-size: 10px; color: var(--color-text-secondary); background: var(--bg-panel);"
-    >
-        <div>⌨️ Hotkeys disponíveis:</div>
+        <!-- Footer hotkeys hint -->
         <div
-            style="margin-top: 4px; display: flex; flex-direction: column; gap: 2px;"
+            style="padding: 8px 16px; border-top: 1px solid var(--border); font-size: 10px; color: var(--color-text-secondary); background: var(--bg-panel);"
         >
-            <div>
-                <kbd
-                    style="background: var(--layer-2); padding: 2px 4px; border-radius: 3px;"
-                    >Ctrl+Shift+F</kbd
-                > → Favoritos
-            </div>
-            <div>
-                <kbd
-                    style="background: var(--layer-2); padding: 2px 4px; border-radius: 3px;"
-                    >Ctrl+Shift+S</kbd
-                > → Stats
+            <div>⌨️ Hotkeys disponíveis:</div>
+            <div
+                style="margin-top: 4px; display: flex; flex-direction: column; gap: 2px;"
+            >
+                <div>
+                    <kbd
+                        style="background: var(--layer-2); padding: 2px 4px; border-radius: 3px;"
+                        >Ctrl+Shift+F</kbd
+                    > → Favoritos
+                </div>
+                <div>
+                    <kbd
+                        style="background: var(--layer-2); padding: 2px 4px; border-radius: 3px;"
+                        >Ctrl+Shift+S</kbd
+                    > → Stats
+                </div>
             </div>
         </div>
-    </div>
+    </section>
 </aside>
 
 <!-- Folder Input Modal -->
@@ -773,7 +813,85 @@
 />
 
 <style>
-    /* Remove focus outline from scroll container (keyboard nav is handled) */
+    /* Projects List */
+    .projects-list {
+        margin-top: 4px;
+        margin-left: 4px; /* Align with others */
+        padding-left: 10px;
+        border-left: 1px solid var(--border-light);
+    }
+
+    /* COPIED STYLES FROM CategoryDropdown for consistency */
+    .category-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        cursor: pointer;
+        background: linear-gradient(135deg, var(--layer-2), var(--layer-1));
+        border-radius: var(--radius-small);
+        border: 1px solid var(--border-light);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .category-header:hover {
+        background: linear-gradient(135deg, var(--layer-3), var(--layer-2));
+        border-color: rgba(157, 78, 221, 0.3);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .category-header .chevron {
+        font-size: 10px;
+        color: var(--color-text-secondary);
+        width: 14px;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-block;
+    }
+
+    .category-header.is-open .chevron {
+        transform: rotate(90deg);
+    }
+
+    .category-header .icon {
+        font-size: 16px;
+        filter: drop-shadow(0 0 8px rgba(157, 78, 221, 0.2));
+    }
+
+    .category-header .title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        flex: 1;
+    }
+
+    .category-header .count {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 8px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        color: var(--color-text-secondary);
+        border: 1px solid var(--border);
+    }
+
+    .add-btn {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        color: var(--color-text-secondary);
+        transition: all 0.2s;
+        margin-left: 4px;
+    }
+    .add-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
     .sidebar-scroll-area:focus {
         outline: none;
     }

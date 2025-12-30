@@ -10,16 +10,20 @@
 
     const dispatch = createEventDispatcher();
 
-    let value = defaultValue;
+    let internalValue = defaultValue;
     let inputEl;
 
     $: if (isOpen && inputEl) {
-        value = defaultValue;
+        internalValue = defaultValue;
         setTimeout(() => inputEl?.focus(), 50);
     }
 
+    function handleInput(e) {
+        internalValue = e.target.value;
+    }
+
     function handleSubmit() {
-        dispatch("submit", { value: value.trim() });
+        dispatch("submit", { value: internalValue.trim() });
         isOpen = false;
     }
 
@@ -47,9 +51,10 @@
             <div class="modal-title">{title}</div>
             <input
                 bind:this={inputEl}
-                bind:value
+                value={internalValue}
                 type="text"
                 {placeholder}
+                on:input={handleInput}
                 on:keydown={handleKeydown}
                 class="modal-input"
             />
