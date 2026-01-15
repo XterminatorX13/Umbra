@@ -1,10 +1,13 @@
 <script>
     import { createEventDispatcher, onMount, onDestroy } from "svelte";
     import { getConvKey } from "./utils";
+    import { addToast } from "./stores.js";
     import CategoryDropdown from "./components/CategoryDropdown.svelte";
     import InputModal from "./components/InputModal.svelte";
     import FilterPanel from "./components/FilterPanel.svelte";
     import BorderBeam from "./components/BorderBeam.svelte";
+    import IconPicker from "./components/IconPicker.svelte";
+    import ColorPicker from "./components/ColorPicker.svelte";
 
     export let conversations = [];
     export let metadata = {};
@@ -44,6 +47,12 @@
     let pendingFolderName = "";
     let pendingFolderIcon = "";
     let editingFolderName = "";
+
+    // Visual pickers state
+    let iconPickerOpen = false;
+    let colorPickerOpen = false;
+    let pendingIcon = "📁";
+    let pendingColor = "#7c3aed";
 
     // Folder metadata (icons & colors)
     const FOLDER_META_KEY = "pkm_folder_meta_v1";
@@ -312,25 +321,10 @@
         if (modalStep === "newFolderName") {
             if (!value) return;
             pendingFolderName = value;
-            modalStep = "newFolderIcon";
-            modalTitle = `Ícone para "${value}" (emoji)`;
-            modalDefault = "📁";
-            modalPlaceholder = "📁 ou outro emoji";
-            modalOpen = true;
-        } else if (modalStep === "newFolderIcon") {
-            pendingFolderIcon = value || "📁";
-            modalStep = "newFolderColor";
-            modalTitle = `Cor para "${pendingFolderName}"`;
-            modalDefault = randomFolderColor();
-            modalPlaceholder = "#hex ou nome";
-            modalOpen = true;
-        } else if (modalStep === "newFolderColor") {
-            const color = value || randomFolderColor();
-            folderMeta[pendingFolderName] = { icon: pendingFolderIcon, color };
-            folderMeta = { ...folderMeta };
-            saveFolderMeta();
-            pendingFolderName = "";
-            pendingFolderIcon = "";
+            modalOpen = false;
+            // Abrir IconPicker visual
+            pendingIcon = "📁";
+            iconPickerOpen = true;
         } else if (modalStep === "editIcon") {
             if (value !== null) {
                 folderMeta[editingFolderName] = {
@@ -353,7 +347,26 @@
                 saveFolderMeta();
             }
             editingFolderName = "";
+            modalOpen = false;
         }
+    }
+
+    function handleIconSelect(event) {
+        pendingFolderIcon = event.detail.icon;
+        pendingIcon = event.detail.icon;
+        // Abrir ColorPicker visual
+        pendingColor = randomFolderColor();
+        colorPickerOpen = true;
+    }
+
+    function handleColorSelect(event) {
+        const color = event.detail.color;
+        // Criar pasta com nome, ícone e cor selecionados
+        folderMeta[pendingFolderName] = { icon: pendingFolderIcon, color };
+        folderMeta = { ...folderMeta };
+        saveFolderMeta();
+        pendingFolderName = "";
+        pendingFolderIcon = "";
     }
 
     function editFolderSettings(name) {
@@ -369,16 +382,18 @@
     function deleteFolder(name) {
         if (
             !confirm(
-                `Deletar pasta "${name}"? As conversas não serão deletadas.`,
+                `Deletar pasta "${name}"? As conversas não serão deletadas, apenas movidas para "Todos".`,
             )
         )
             return;
 
         // Remove folder from all conversations
+        let movedCount = 0;
         conversations.forEach((c) => {
             const key = getConvKey(c);
             if (metadata[key]?.folder === name) {
                 delete metadata[key].folder;
+                movedCount++;
             }
         });
 
@@ -386,6 +401,12 @@
         folderMeta = { ...folderMeta };
         saveFolderMeta();
         dispatch("metadataChanged");
+
+        // Toast de confirmação
+        addToast(
+            `Pasta "${name}" excluída. ${movedCount} conversa(s) movida(s) para "Todos".`,
+            "success",
+        );
     }
 
     function toggleSection(section) {
@@ -761,14 +782,28 @@
                                                 !metadata[getConvKey(c)]
                                                     ?.deleted,
                                         )}
-                                        <CategoryDropdown
-                                            title={folderName}
-                                            icon={fm.icon}
-                                            conversations={folderConvs}
-                                            {metadata}
-                                            {activeId}
-                                            on:select
-                                        />
+                                        <div class="folder-row">
+                                            <div
+                                                class="folder-dropdown-wrapper"
+                                            >
+                                                <CategoryDropdown
+                                                    title={folderName}
+                                                    icon={fm.icon}
+                                                    conversations={folderConvs}
+                                                    {metadata}
+                                                    {activeId}
+                                                    on:select
+                                                />
+                                            </div>
+                                            <button
+                                                class="folder-trash-btn"
+                                                on:click|stopPropagation={() =>
+                                                    deleteFolder(folderName)}
+                                                title="Excluir pasta (conversas serão movidas para 'Todos')"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
                                     {/each}
                                 {/if}
                             </div>
@@ -812,6 +847,20 @@
     on:submit={handleModalSubmit}
 />
 
+<!-- Visual Icon Picker -->
+<IconPicker
+    bind:isOpen={iconPickerOpen}
+    selectedIcon={pendingIcon}
+    on:select={handleIconSelect}
+/>
+
+<!-- Visual Color Picker -->
+<ColorPicker
+    bind:isOpen={colorPickerOpen}
+    selectedColor={pendingColor}
+    on:select={handleColorSelect}
+/>
+
 <style>
     /* Projects List */
     .projects-list {
@@ -819,6 +868,45 @@
         margin-left: 4px; /* Align with others */
         padding-left: 10px;
         border-left: 1px solid var(--border-light);
+    }
+
+    /* Folder Row Container */
+    .folder-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 4px;
+        position: relative;
+    }
+
+    .folder-dropdown-wrapper {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .folder-trash-btn {
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        background: transparent;
+        border: 1px solid transparent;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        opacity: 0;
+        margin-top: 6px;
+    }
+
+    .folder-row:hover .folder-trash-btn {
+        opacity: 0.5;
+    }
+
+    .folder-trash-btn:hover {
+        opacity: 1 !important;
+        background: rgba(239, 68, 68, 0.15);
+        border-color: rgba(239, 68, 68, 0.3);
     }
 
     /* COPIED STYLES FROM CategoryDropdown for consistency */

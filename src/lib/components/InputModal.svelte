@@ -12,19 +12,20 @@
 
     let internalValue = defaultValue;
     let inputEl;
+    let lastOpenState = false;
 
-    $: if (isOpen && inputEl) {
+    // Reset value apenas quando modal ABRE (transição de false para true)
+    $: if (isOpen && !lastOpenState) {
         internalValue = defaultValue;
+        lastOpenState = true;
         setTimeout(() => inputEl?.focus(), 50);
-    }
-
-    function handleInput(e) {
-        internalValue = e.target.value;
+    } else if (!isOpen) {
+        lastOpenState = false;
     }
 
     function handleSubmit() {
         dispatch("submit", { value: internalValue.trim() });
-        isOpen = false;
+        // NOTA: Não fechar aqui - deixar o componente pai controlar
     }
 
     function handleCancel() {
@@ -51,10 +52,9 @@
             <div class="modal-title">{title}</div>
             <input
                 bind:this={inputEl}
-                value={internalValue}
+                bind:value={internalValue}
                 type="text"
                 {placeholder}
-                on:input={handleInput}
                 on:keydown={handleKeydown}
                 class="modal-input"
             />
