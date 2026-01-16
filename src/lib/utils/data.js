@@ -102,6 +102,9 @@ export function normalizeConversation(conv) {
     let lastMessageModel = null;
     let isReasoningParams = false;
 
+    // Reasoning tracking
+    let totalReasoningTime = 0; // in seconds
+
     for (const key in mapping) {
         const node = mapping[key];
         if (!node?.message) continue;
@@ -116,10 +119,17 @@ export function normalizeConversation(conv) {
             foundModels.add(msg.metadata.model_slug);
             lastMessageModel = msg.metadata.model_slug;
 
-            // Check for explicit reasoning flag (some exports have it)
-            if (msg.metadata?.is_reasoning || msg.metadata?.model_slug?.startsWith('o')) {
+            // Check for explicit reasoning flag or "thinking" suffix
+            if (msg.metadata?.reasoning_status ||
+                msg.metadata?.model_slug?.includes('thinking') ||
+                msg.metadata?.model_slug?.startsWith('o')) {
                 isReasoningParams = true;
             }
+        }
+
+        // Reasoning Duration Tracking
+        if (meta.reasoning_status === 'reasoning_ended' && meta.finished_duration_sec) {
+            totalReasoningTime += meta.finished_duration_sec;
         }
 
         // Canvas detection (multiple signals)
@@ -150,8 +160,12 @@ export function normalizeConversation(conv) {
         computedModelSlug = lastMessageModel;
     }
 
-    // Identify Reasoning based on generic "starts with o" rule (o1, o3, etc) or specific flag
-    const isReasoningModel = isReasoningParams || computedModelSlug.startsWith('o') || computedModelSlug.includes('reasoning');
+    // Identify Reasoning based on generic "starts with o" rule (o1, o3, etc), thinking suffix, or specific flag
+    const isReasoningModel = isReasoningParams ||
+        computedModelSlug.startsWith('o') ||
+        computedModelSlug.includes('reasoning') ||
+        computedModelSlug.includes('thinking') ||
+        totalReasoningTime > 0;
 
     // Aggregate filter metadata at conversation level
     const filterMeta = {
@@ -164,6 +178,7 @@ export function normalizeConversation(conv) {
         modelName: getModelName(computedModelSlug),
         isDeepResearch: modelInfo.isDeepResearch,
         isReasoning: isReasoningModel,
+        reasoningTime: totalReasoningTime, // Total time in seconds
         createDate: createTime ? new Date(createTime * 1000) : null
     };
 
