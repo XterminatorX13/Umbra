@@ -265,6 +265,30 @@ function extractMessagesFromMapping(mapping, fallbackTime, safeUrls = []) {
         // Detect DALL-E image generation prompts (structured output)
         const imageGenPrompt = parseImageGenPrompt(text);
 
+        // ═══════════════════════════════════════════════════════════════
+        // NEW: Detect Canvas/TextDoc content (canmore.create_textdoc)
+        // ═══════════════════════════════════════════════════════════════
+        let canvasContent = null;
+        const recipient = msg.recipient || '';
+        if (recipient.startsWith('canmore.') && role === 'assistant') {
+            try {
+                // Canvas content is sent as JSON in the message
+                const parsed = JSON.parse(text);
+                if (parsed.content && parsed.name) {
+                    canvasContent = {
+                        name: parsed.name,
+                        type: parsed.type || 'document',
+                        content: parsed.content,
+                        textdocId: null // Will be filled by subsequent tool response
+                    };
+                    // Override text display for canvas messages
+                    text = `📄 Canvas: ${parsed.name}`;
+                }
+            } catch (e) {
+                // Not valid JSON, keep as regular message
+            }
+        }
+
         // Extract image URLs from content_references (for DALL-E/multimodal)
         let imageUrls = [];
         if (contentRefs.some(ref => ref.type === 'image_group')) {
@@ -287,10 +311,11 @@ function extractMessagesFromMapping(mapping, fallbackTime, safeUrls = []) {
             modelSlug: msgModelSlug,
             modelName: modelName,
             imageGen: imageGenPrompt,
-            toolCalls,       // NEW: Array of parsed tool calls
-            hasToolCall,     // NEW: Boolean flag
-            contentIsNull,   // NEW: Flag for null content with tool calls
-            imageUrls        // NEW: Array of image URLs
+            toolCalls,       // Array of parsed tool calls
+            hasToolCall,     // Boolean flag
+            contentIsNull,   // Flag for null content with tool calls
+            imageUrls,       // Array of image URLs
+            canvasContent    // Canvas/TextDoc content object
         });
     }
 

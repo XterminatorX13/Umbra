@@ -38,6 +38,7 @@
   import SourcesPanel from "../components/features/SourcesPanel.svelte";
   import WikiHoverPreview from "../components/features/WikiHoverPreview.svelte";
   import ToolCallBadge from "../components/ui/ToolCallBadge.svelte";
+  import CanvasViewer from "../components/features/CanvasViewer.svelte";
 
   export let conversation = null;
   export let meta = {};
@@ -95,6 +96,7 @@
   let isRendering = false;
   let showSidebar = false;
   let chatContainer;
+  let activeCanvas = null; // For Canvas Viewer panel
 
   // Markdown cache to prevent re-parsing
   const markdownCache = new Map();
@@ -610,12 +612,40 @@
                 {/each}
               </div>
             {/if}
+
+            <!-- Canvas/TextDoc Card (clickable to open viewer) -->
+            {#if msg.canvasContent}
+              <button
+                class="canvas-card"
+                on:click={() => (activeCanvas = msg.canvasContent)}
+              >
+                <div class="canvas-card-icon">
+                  <FileText size={20} />
+                </div>
+                <div class="canvas-card-info">
+                  <span class="canvas-card-name">{msg.canvasContent.name}</span>
+                  <span class="canvas-card-type">
+                    {msg.canvasContent.type === "document"
+                      ? "Documento"
+                      : "Código"} • Clique para abrir
+                  </span>
+                </div>
+              </button>
+            {/if}
           </div>
         </div>
       {/each}
 
       <div style="height: 50px;"></div>
     </div>
+
+    <!-- Canvas Viewer Panel -->
+    {#if activeCanvas}
+      <CanvasViewer
+        canvas={activeCanvas}
+        onClose={() => (activeCanvas = null)}
+      />
+    {/if}
 
     <!-- Floating Input Area -->
     <div class="px-8 pb-8 pt-2 flex-shrink-0">
@@ -1164,6 +1194,76 @@
     color: #e2e8f0;
     font-style: italic;
     background: rgba(0, 0, 0, 0.2);
+  }
+
+  /* Canvas Card Styles */
+  .canvas-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 14px 18px;
+    background: linear-gradient(
+      135deg,
+      rgba(139, 92, 246, 0.1),
+      rgba(99, 102, 241, 0.08)
+    );
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    text-align: left;
+  }
+
+  .canvas-card:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(139, 92, 246, 0.2),
+      rgba(99, 102, 241, 0.15)
+    );
+    border-color: rgba(139, 92, 246, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.2);
+  }
+
+  .canvas-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(
+      135deg,
+      rgba(139, 92, 246, 0.3),
+      rgba(139, 92, 246, 0.15)
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a78bfa;
+    flex-shrink: 0;
+  }
+
+  .canvas-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .canvas-card-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e4e4e7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .canvas-card-type {
+    font-size: 11px;
+    color: #a78bfa;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .tool-badge.clickable {
