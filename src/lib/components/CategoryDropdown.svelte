@@ -11,10 +11,22 @@
     export let defaultOpen = false;
     export let getSnippet = null; // Function to get search snippet for a conversation
     export let searchTerm = ""; // Current search term for highlighting
+    export let folders = []; // List of available folders for context menu
 
     const dispatch = createEventDispatcher();
 
     let isOpen = defaultOpen;
+
+    // Context Menu State
+    let contextMenu = {
+        isOpen: false,
+        x: 0,
+        y: 0,
+        convId: null,
+    };
+
+    // Drag and Drop State
+    let isDragging = false;
 
     function toggle() {
         isOpen = !isOpen;
@@ -22,6 +34,54 @@
 
     function select(key) {
         dispatch("select", { id: key });
+    }
+
+    /* --- Context Menu --- */
+    function openContextMenu(e, convId) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Adjust position to not overflow screen
+        const x = Math.min(e.clientX, window.innerWidth - 200);
+        const y = Math.min(e.clientY, window.innerHeight - 300);
+
+        contextMenu = {
+            isOpen: true,
+            x,
+            y,
+            convId,
+        };
+
+        // Close menu when clicking outside
+        document.addEventListener("click", closeContextMenu);
+    }
+
+    function closeContextMenu() {
+        contextMenu.isOpen = false;
+        document.removeEventListener("click", closeContextMenu);
+    }
+
+    function handleAction(action, payload = {}) {
+        if (!contextMenu.convId) return;
+
+        dispatch("action", {
+            type: action,
+            id: contextMenu.convId,
+            ...payload,
+        });
+
+        closeContextMenu();
+    }
+
+    /* --- Drag and Drop --- */
+    function handleDragStart(e, convId) {
+        e.dataTransfer.setData("text/plain", convId);
+        e.dataTransfer.effectAllowed = "move";
+        isDragging = true;
+    }
+
+    function handleDragEnd() {
+        isDragging = false;
     }
 
     let renderLimit = 50;
@@ -75,30 +135,49 @@
                     on:click={() => select(key)}
                     class="conv-row"
                     class:active={activeId === key}
+                    draggable="true"
+                    on:dragstart={(e) => handleDragStart(e, key)}
+                    on:dragend={handleDragEnd}
+                    on:contextmenu={(e) => openContextMenu(e, key)}
                 >
-                    <div class="conv-title">
-                        {conv.title || "(Sem título)"}
+                    <div class="conv-content-wrapper">
+                        <div class="conv-title">
+                            {conv.title || "(Sem título)"}
+                        </div>
+
+                        <div class="conv-meta">
+                            <span>💬 {conv.messages.length}</span>
+                            {#if conv.createTime}
+                                <span style="opacity:0.6"
+                                    >• {formatDate(conv.createTime)}</span
+                                >
+                            {/if}
+                            {#if meta.favorite}<span class="fav-icon">★</span
+                                >{/if}
+                            {#if meta.folder}<span>📁 {meta.folder}</span>{/if}
+                        </div>
+
+                        {#if getSnippet}
+                            {@const snippet = getSnippet(key)}
+                            {#if snippet}
+                                <div class="conv-snippet">
+                                    {@html highlightSnippet(
+                                        snippet,
+                                        searchTerm,
+                                    )}
+                                </div>
+                            {/if}
+                        {/if}
                     </div>
 
-                    <div class="conv-meta">
-                        <span>💬 {conv.messages.length}</span>
-                        {#if conv.createTime}
-                            <span style="opacity:0.6"
-                                >• {formatDate(conv.createTime)}</span
-                            >
-                        {/if}
-                        {#if meta.favorite}<span class="fav-icon">★</span>{/if}
-                        {#if meta.folder}<span>📁 {meta.folder}</span>{/if}
-                    </div>
-
-                    {#if getSnippet}
-                        {@const snippet = getSnippet(key)}
-                        {#if snippet}
-                            <div class="conv-snippet">
-                                {@html highlightSnippet(snippet, searchTerm)}
-                            </div>
-                        {/if}
-                    {/if}
+                    <!-- Context Menu Button -->
+                    <button
+                        class="context-btn"
+                        on:click={(e) => openContextMenu(e, key)}
+                        title="Opções"
+                    >
+                        ⋮
+                    </button>
 
                     <!-- Active Glow Effect -->
                     {#if activeId === key}
@@ -114,6 +193,51 @@
 
     {#if isOpen && conversations.length === 0}
         <div class="empty-msg">Nenhuma conversa</div>
+    {/if}
+
+    <!-- Context Menu Portal/Overlay -->
+    {#if contextMenu.isOpen}
+        {@const meta = metadata[contextMenu.convId] || {}}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div
+            class="context-menu"
+            style="top: {contextMenu.y}px; left: {contextMenu.x}px;"
+            on:click|stopPropagation
+        >
+            <button class="menu-item" on:click={() => handleAction("favorite")}>
+                <span>{meta.favorite ? "★ Desfavoritar" : "☆ Favoritar"}</span>
+            </button>
+
+            <div class="menu-divider"></div>
+
+            <div class="menu-label">Mover para...</div>
+            <div class="submenu-container custom-scrollbar">
+                <button
+                    class="menu-item"
+                    on:click={() => handleAction("move", { folder: null })}
+                >
+                    <span>🏠 Home (Sem pasta)</span>
+                </button>
+                {#each folders as folder}
+                    <button
+                        class="menu-item"
+                        on:click={() => handleAction("move", { folder })}
+                    >
+                        <span>📁 {folder}</span>
+                    </button>
+                {/each}
+            </div>
+
+            <div class="menu-divider"></div>
+
+            <button
+                class="menu-item danger"
+                on:click={() => handleAction("delete")}
+            >
+                <span>🗑️ Excluir</span>
+            </button>
+        </div>
     {/if}
 </div>
 
@@ -205,14 +329,23 @@
     /* Conversation Row - Glass Cockpit Style */
     .conv-row {
         position: relative;
-        padding: 10px 14px;
+        padding: 8px 10px 8px 14px; /* Reduced right padding for button */
         margin: 2px 0;
         cursor: pointer;
         background: transparent;
         border-radius: var(--radius-small);
         border: 1px solid transparent; /* Reserve space */
         transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-        overflow: hidden;
+        overflow: visible; /* Allow context button to be visible */
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .conv-content-wrapper {
+        flex: 1;
+        min-width: 0;
     }
 
     .conv-row:hover {
@@ -308,5 +441,94 @@
         border-radius: var(--radius-small);
         margin-left: 12px;
         margin-top: 4px;
+    }
+    /* Context Menu Button */
+    .context-btn {
+        opacity: 0;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        color: var(--color-text-tertiary);
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+        flex-shrink: 0;
+        margin-top: -2px;
+    }
+
+    .conv-row:hover .context-btn {
+        opacity: 1;
+    }
+
+    .context-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--color-text-primary);
+    }
+
+    /* Context Menu Portal */
+    .context-menu {
+        position: fixed;
+        z-index: 999999;
+        background: var(--bg-panel);
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        padding: 4px;
+        min-width: 160px;
+        animation: fadeIn 0.1s ease-out;
+        backdrop-filter: blur(10px);
+    }
+
+    .menu-item {
+        width: 100%;
+        text-align: left;
+        padding: 6px 10px;
+        background: transparent;
+        color: var(--color-text-primary);
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.2s;
+    }
+
+    .menu-item:hover {
+        background: var(--layer-2);
+    }
+
+    .menu-item.danger {
+        color: #ef4444;
+    }
+
+    .menu-item.danger:hover {
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+    .menu-divider {
+        height: 1px;
+        background: var(--border-light);
+        margin: 4px 0;
+    }
+
+    .menu-label {
+        font-size: 10px;
+        color: var(--color-text-tertiary);
+        padding: 4px 10px;
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+    }
+
+    .submenu-container {
+        max-height: 150px;
+        overflow-y: auto;
     }
 </style>

@@ -400,13 +400,75 @@
         delete folderMeta[name];
         folderMeta = { ...folderMeta };
         saveFolderMeta();
-        dispatch("metadataChanged");
-
         // Toast de confirmação
         addToast(
             `Pasta "${name}" excluída. ${movedCount} conversa(s) movida(s) para "Todos".`,
             "success",
         );
+    }
+
+    /* --- Context Menu Actions --- */
+    function handleContextAction(event) {
+        const { type, id, ...payload } = event.detail;
+
+        if (!metadata[id]) metadata[id] = {};
+
+        if (type === "favorite") {
+            metadata[id].favorite = !metadata[id].favorite;
+            metadata = { ...metadata };
+            // Persistência já é tratada por activeMeta/saveMeta em App.svelte?
+            // Sidebar dispara metadataChanged? App observa activeMeta.
+            // Aqui estamos mexendo diretamente no metadata global.
+            // Precisamos garantir que isso persista.
+            // O ideal é despachar updateMeta para o App.
+            dispatch("updateMeta", { id, favorite: metadata[id].favorite });
+        } else if (type === "delete") {
+            if (confirm("Excluir esta conversa?")) {
+                dispatch("delete", { id });
+            }
+        } else if (type === "move") {
+            const folder = payload.folder;
+            metadata[id].folder = folder; // null remove da pasta
+
+            // Remove 'favorite' se movendo, ou mantém? Mantém.
+            metadata = { ...metadata };
+            dispatch("updateMeta", { id, folder });
+
+            addToast(
+                folder ? `Movido para "${folder}"` : "Removido da pasta",
+                "success",
+            );
+        }
+    }
+
+    /* --- Drag and Drop --- */
+    let dragOverFolder = null;
+
+    function handleDragOver(e, folderName) {
+        e.preventDefault();
+        dragOverFolder = folderName;
+    }
+
+    function handleDragLeave(e) {
+        dragOverFolder = null;
+    }
+
+    function handleDrop(e, folderName) {
+        e.preventDefault();
+        dragOverFolder = null;
+        const convId = e.dataTransfer.getData("text/plain");
+
+        if (convId && metadata[convId]) {
+            if (metadata[convId].folder !== folderName) {
+                handleContextAction({
+                    detail: {
+                        type: "move",
+                        id: convId,
+                        folder: folderName,
+                    },
+                });
+            }
+        }
     }
 
     function toggleSection(section) {
@@ -507,7 +569,7 @@
 
 <aside
     class="glass"
-    style="border-right: 1px solid var(--border-light); display: flex; flex-direction: column; overflow: hidden;"
+    style="border-right: 1px solid var(--border-light); display: flex; flex-direction: column; overflow: visible; position: relative; z-index: 1001;"
 >
     <!-- Header -->
     <div
@@ -697,7 +759,9 @@
                             ? getSnippetForConv
                             : null}
                         {searchTerm}
+                        {folders}
                         on:select
+                        on:action={handleContextAction}
                     />
 
                     <!-- Favoritos -->
@@ -717,7 +781,9 @@
                             ? getSnippetForConv
                             : null}
                         {searchTerm}
+                        {folders}
                         on:select
+                        on:action={handleContextAction}
                     />
 
                     <!-- PROJETOS (Folders) -->
@@ -782,7 +848,18 @@
                                                 !metadata[getConvKey(c)]
                                                     ?.deleted,
                                         )}
-                                        <div class="folder-row">
+                                        <!-- svelte-ignore a11y-no-static-element-interactions -->
+                                        <div
+                                            class="folder-row"
+                                            role="listitem"
+                                            class:drag-over={dragOverFolder ===
+                                                folderName}
+                                            on:dragover={(e) =>
+                                                handleDragOver(e, folderName)}
+                                            on:dragleave={handleDragLeave}
+                                            on:drop={(e) =>
+                                                handleDrop(e, folderName)}
+                                        >
                                             <div
                                                 class="folder-dropdown-wrapper"
                                             >
@@ -792,7 +869,9 @@
                                                     conversations={folderConvs}
                                                     {metadata}
                                                     {activeId}
+                                                    {folders}
                                                     on:select
+                                                    on:action={handleContextAction}
                                                 />
                                             </div>
                                             <button
@@ -876,6 +955,13 @@
         align-items: flex-start;
         gap: 4px;
         position: relative;
+        border-radius: var(--radius-small);
+        transition: background 0.2s;
+    }
+
+    .folder-row.drag-over {
+        background: rgba(157, 78, 221, 0.2);
+        box-shadow: 0 0 0 2px var(--highlight);
     }
 
     .folder-dropdown-wrapper {
