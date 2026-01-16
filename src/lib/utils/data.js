@@ -161,10 +161,11 @@ export function normalizeConversation(conv) {
     }
 
     // Identify Reasoning based on generic "starts with o" rule (o1, o3, etc), thinking suffix, or specific flag
+    const slug = computedModelSlug || '';
     const isReasoningModel = isReasoningParams ||
-        computedModelSlug.startsWith('o') ||
-        computedModelSlug.includes('reasoning') ||
-        computedModelSlug.includes('thinking') ||
+        slug.startsWith('o') ||
+        slug.includes('reasoning') ||
+        slug.includes('thinking') ||
         totalReasoningTime > 0;
 
     // Aggregate filter metadata at conversation level
