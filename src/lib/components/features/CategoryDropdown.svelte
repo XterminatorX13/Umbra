@@ -192,7 +192,9 @@
     {/if}
 
     {#if isOpen && conversations.length === 0}
-        <div class="empty-msg">Nenhuma conversa</div>
+        <div class="empty-msg">
+            {searchTerm ? "Nenhum resultado encontrado" : "Nenhuma conversa"}
+        </div>
     {/if}
 
     <!-- Context Menu Portal/Overlay -->
