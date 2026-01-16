@@ -47,15 +47,24 @@
 <div
     bind:this={viewport}
     class="virtual-viewport"
-    style="overflow-y: auto; flex: 1; position: relative;"
+    style="
+        overflow-y: auto; 
+        flex: 1; 
+        width: 100%; 
+        height: 100%; 
+        position: relative; 
+        contain: strict;
+    "
 >
     <!-- Phantom div para manter a altura do scroll -->
     <div
-        style="height: {totalHeight}px; width: 1px; position: absolute; top: 0; left: 0; pointer-events: none;"
+        style="height: {totalHeight}px; width: 1px; position: absolute; top: 0; left: 0; pointer-events: none; opacity: 0;"
     ></div>
 
     <!-- Conteúdo visível -->
-    <div style="transform: translateY({offsetY}px); will-change: transform;">
+    <div
+        style="transform: translateY({offsetY}px); will-change: transform; width: 100%; pointer-events: auto;"
+    >
         <slot {visibleItems} />
     </div>
 </div>
@@ -63,5 +72,6 @@
 <style>
     .virtual-viewport {
         -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
     }
 </style>
