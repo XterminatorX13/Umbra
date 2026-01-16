@@ -411,27 +411,17 @@
     function handleContextAction(event) {
         const { type, id, ...payload } = event.detail;
 
-        if (!metadata[id]) metadata[id] = {};
-
         if (type === "favorite") {
-            metadata[id].favorite = !metadata[id].favorite;
-            metadata = { ...metadata };
-            // Persistência já é tratada por activeMeta/saveMeta em App.svelte?
-            // Sidebar dispara metadataChanged? App observa activeMeta.
-            // Aqui estamos mexendo diretamente no metadata global.
-            // Precisamos garantir que isso persista.
-            // O ideal é despachar updateMeta para o App.
-            dispatch("updateMeta", { id, favorite: metadata[id].favorite });
+            // Don't mutate metadata prop - let App handle it
+            const currentFav = metadata[id]?.favorite || false;
+            dispatch("updateMeta", { id, favorite: !currentFav });
         } else if (type === "delete") {
             if (confirm("Excluir esta conversa?")) {
                 dispatch("delete", { id });
             }
         } else if (type === "move") {
             const folder = payload.folder;
-            metadata[id].folder = folder; // null remove da pasta
-
-            // Remove 'favorite' se movendo, ou mantém? Mantém.
-            metadata = { ...metadata };
+            // Don't mutate metadata prop - let App handle it
             dispatch("updateMeta", { id, folder });
 
             addToast(
@@ -447,6 +437,7 @@
     function handleDragOver(e, folderName) {
         e.preventDefault();
         dragOverFolder = folderName;
+        // console.log("DragOver:", folderName);
     }
 
     function handleDragLeave(e) {
@@ -458,8 +449,9 @@
         dragOverFolder = null;
         const convId = e.dataTransfer.getData("text/plain");
 
-        if (convId && metadata[convId]) {
-            if (metadata[convId].folder !== folderName) {
+        if (convId) {
+            const currentFolder = metadata[convId]?.folder;
+            if (currentFolder !== folderName) {
                 handleContextAction({
                     detail: {
                         type: "move",
