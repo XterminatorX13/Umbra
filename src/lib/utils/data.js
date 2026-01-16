@@ -18,9 +18,11 @@ function getModelName(slug) {
     // Check known aliases first
     if (MODEL_ALIASES[slug]) return MODEL_ALIASES[slug];
 
-    // Auto-format pattern: gpt-X.X → GPT-X.X
+    // Auto-format pattern: gpt-X.X → GPT-X.X (preserve dots!)
     if (slug.startsWith('gpt-')) {
-        return 'GPT-' + slug.slice(4).toUpperCase().replace(/-/g, ' ');
+        // Get version part after "gpt-", keeping dots for versions like 5.2
+        const version = slug.slice(4);
+        return 'GPT-' + version;
     }
 
     // Auto-format pattern: oX-mini → oX Mini
@@ -295,39 +297,103 @@ function extractMessagesFromMapping(mapping, fallbackTime, safeUrls = []) {
 }
 
 /**
- * Detects which internal tool generated this message based on metadata/author.
+ * Detects which internal tools were used in this message based on metadata/author.
+ * Recognizes ChatGPT's internal tool signatures from export JSON.
  */
 function detectTools(msg) {
     const tools = [];
+    const meta = msg.metadata || {};
+    const author = msg.author || {};
+    const authorName = author.name || '';
+    const authorRole = author.role || '';
 
-    // 1. Author Role Check
-    if (msg.author && msg.author.role === 'tool') {
-        const name = msg.author.name;
-        if (name === 'browser' || name === 'tether_browsing_display') {
-            tools.push({ type: 'browser', label: 'Deep Research / Web', icon: 'globe' });
-        } else if (name === 'python' || name === 'dalle.text2im') {
-            tools.push({ type: 'code', label: 'Analysis / Python', icon: 'code' });
+    // ═══════════════════════════════════════════════════════════════
+    // 1. WEB SEARCH / BROWSING (web.run, browser, sonicberry)
+    // ═══════════════════════════════════════════════════════════════
+    if (authorRole === 'tool' && (authorName === 'web.run' || authorName.startsWith('web.'))) {
+        tools.push({ type: 'web_search', label: 'Web Search', icon: 'globe' });
+    }
+    if (authorName === 'browser' || authorName === 'tether_browsing_display' || meta.real_author === 'tool:web') {
+        tools.push({ type: 'browser', label: 'Browsing', icon: 'globe' });
+    }
+    // Check for search results in metadata
+    if (meta.search_result_groups && meta.search_result_groups.length > 0) {
+        const totalResults = meta.search_result_groups.reduce((sum, g) => sum + (g.entries?.length || 0), 0);
+        tools.push({
+            type: 'web_results',
+            label: `${totalResults} Web Results`,
+            icon: 'globe',
+            resultCount: totalResults
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 2. DEEP RESEARCH (async research tasks)
+    // ═══════════════════════════════════════════════════════════════
+    if (meta.async_task_type === 'research') {
+        tools.push({
+            type: 'deep_research',
+            label: 'Deep Research',
+            icon: 'search',
+            taskId: meta.async_task_id
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 3. CANVAS / TEXTDOCS (canmore)
+    // ═══════════════════════════════════════════════════════════════
+    if (authorName.startsWith('canmore') || meta.canvas) {
+        const canvasTitle = meta.canvas?.title || 'Document';
+        tools.push({
+            type: 'canvas',
+            label: `Canvas: ${canvasTitle.slice(0, 20)}...`,
+            icon: 'file-text',
+            textdocId: meta.canvas?.textdoc_id
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 4. IMAGE GENERATION (DALL-E / t2uay3k / ChatGPT Image)
+    // ═══════════════════════════════════════════════════════════════
+    if (meta.dalle || authorName.startsWith('t2uay3k') || authorName === 'dalle.text2im') {
+        tools.push({ type: 'image_gen', label: 'Image Generation', icon: 'image' });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 5. CODE INTERPRETER / PYTHON
+    // ═══════════════════════════════════════════════════════════════
+    if (authorName === 'python' || authorName === 'code_interpreter') {
+        tools.push({ type: 'code', label: 'Code Interpreter', icon: 'code' });
+    }
+    const ctype = msg.content?.content_type || '';
+    if (ctype === 'execution_output') {
+        tools.push({ type: 'code_output', label: 'Python Output', icon: 'terminal' });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 6. CITATIONS / SOURCES (content_references)
+    // ═══════════════════════════════════════════════════════════════
+    const contentRefs = meta.content_references || [];
+    if (contentRefs.length > 0) {
+        const uniqueUrls = new Set(contentRefs.map(r => r.url).filter(Boolean));
+        if (uniqueUrls.size > 0) {
+            tools.push({
+                type: 'citation',
+                label: `${uniqueUrls.size} Sources`,
+                icon: 'book',
+                sourceCount: uniqueUrls.size
+            });
         }
     }
 
-    // 2. Content Type Check
-    const ctype = msg.content ? msg.content.content_type : '';
-    if (ctype === 'execution_output') {
-        tools.push({ type: 'code', label: 'Python Output', icon: 'terminal' });
-    } else if (ctype === 'tether_browsing_display') {
-        tools.push({ type: 'browser', label: 'Browsing', icon: 'globe' });
-    }
-
-    // 3. Metadata Citation Check - Use content_references for accurate count
-    const contentRefs = msg.metadata?.content_references || [];
-    if (contentRefs.length > 0) {
-        // Deduplicate by URL to get unique sources
-        const uniqueUrls = new Set(contentRefs.map(r => r.url).filter(Boolean));
+    // ═══════════════════════════════════════════════════════════════
+    // 7. FILE UPLOADS / ATTACHMENTS
+    // ═══════════════════════════════════════════════════════════════
+    if (meta.attachments && meta.attachments.length > 0) {
         tools.push({
-            type: 'citation',
-            label: `${uniqueUrls.size} Sources`,
-            icon: 'book',
-            sourceCount: uniqueUrls.size
+            type: 'attachment',
+            label: `${meta.attachments.length} File(s)`,
+            icon: 'paperclip'
         });
     }
 
