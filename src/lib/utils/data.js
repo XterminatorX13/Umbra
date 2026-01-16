@@ -91,12 +91,16 @@ export function normalizeConversation(conv) {
     modelInfo.modelName = getModelName(modelInfo.modelSlug);
 
     // ════════════════════════════════════════════════════════════════════════
-    // RAW SCAN for filter metadata (includes tool messages that aren't displayed)
-    // ════════════════════════════════════════════════════════════════════════
     let rawHasCanvas = false;
     let rawHasCode = false;
     let rawHasWebSearch = false;
     let rawHasImageGen = false;
+
+    // Model Detection tracking
+    const foundModels = new Set();
+    let computedModelSlug = conv.default_model_slug;
+    let lastMessageModel = null;
+    let isReasoningParams = false;
 
     for (const key in mapping) {
         const node = mapping[key];
@@ -104,7 +108,19 @@ export function normalizeConversation(conv) {
         const msg = node.message;
         const meta = msg.metadata || {};
         const authorName = msg.author?.name || '';
+        const role = msg.author?.role;
         const recipient = msg.recipient || '';
+
+        // Model Info Extraction (Prioritize message-level model slug)
+        if (msg.metadata?.model_slug && role === 'assistant') {
+            foundModels.add(msg.metadata.model_slug);
+            lastMessageModel = msg.metadata.model_slug;
+
+            // Check for explicit reasoning flag (some exports have it)
+            if (msg.metadata?.is_reasoning || msg.metadata?.model_slug?.startsWith('o')) {
+                isReasoningParams = true;
+            }
+        }
 
         // Canvas detection (multiple signals)
         if (meta.canvas || authorName.startsWith('canmore') || recipient.startsWith('canmore')) {
@@ -129,6 +145,14 @@ export function normalizeConversation(conv) {
         }
     }
 
+    // Logic: If default is "auto", use the last detected model from messages if available
+    if (computedModelSlug === 'auto' && lastMessageModel) {
+        computedModelSlug = lastMessageModel;
+    }
+
+    // Identify Reasoning based on generic "starts with o" rule (o1, o3, etc) or specific flag
+    const isReasoningModel = isReasoningParams || computedModelSlug.startsWith('o') || computedModelSlug.includes('reasoning');
+
     // Aggregate filter metadata at conversation level
     const filterMeta = {
         hasImageGen: rawHasImageGen || messages.some(m => m.imageGen !== null && m.imageGen !== undefined),
@@ -136,9 +160,10 @@ export function normalizeConversation(conv) {
         hasCanvas: rawHasCanvas || messages.some(m => m.canvasContent || m.tools?.some(t => t.type === 'canvas')),
         hasCode: rawHasCode || messages.some(m => m.tools?.some(t => t.type === 'code' || t.type === 'code_output') || m.toolCalls?.some(tc => tc.name === 'python' || tc.name === 'code_interpreter')),
         hasSources: messages.some(m => m.sources?.length > 0),
-        modelSlug: modelInfo.modelSlug,
-        modelName: modelInfo.modelName,
+        modelSlug: computedModelSlug,
+        modelName: getModelName(computedModelSlug),
         isDeepResearch: modelInfo.isDeepResearch,
+        isReasoning: isReasoningModel,
         createDate: createTime ? new Date(createTime * 1000) : null
     };
 
