@@ -156,6 +156,8 @@
             hasImageGen,
             hasWebSearch,
             isDeepResearch,
+            hasCanvas,
+            hasCode,
             dateFrom,
             dateTo,
         } = advancedFilters;
@@ -176,6 +178,8 @@
                     if (hasImageGen && !fm.hasImageGen) return false;
                     if (hasWebSearch && !fm.hasWebSearch) return false;
                     if (isDeepResearch && !fm.isDeepResearch) return false;
+                    if (hasCanvas && !fm.hasCanvas) return false;
+                    if (hasCode && !fm.hasCode) return false;
                     if (dateFrom && fm.createDate && fm.createDate < dateFrom)
                         return false;
                     if (dateTo && fm.createDate) {
@@ -201,6 +205,8 @@
                 if (hasImageGen && !fm.hasImageGen) return false;
                 if (hasWebSearch && !fm.hasWebSearch) return false;
                 if (isDeepResearch && !fm.isDeepResearch) return false;
+                if (hasCanvas && !fm.hasCanvas) return false;
+                if (hasCode && !fm.hasCode) return false;
                 if (dateFrom && fm.createDate && fm.createDate < dateFrom)
                     return false;
                 if (dateTo && fm.createDate) {
