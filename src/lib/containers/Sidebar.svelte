@@ -109,6 +109,8 @@
         advancedFilters.hasImageGen ||
         advancedFilters.hasWebSearch ||
         advancedFilters.isDeepResearch ||
+        advancedFilters.hasCanvas ||
+        advancedFilters.hasCode ||
         advancedFilters.dateFrom ||
         advancedFilters.dateTo;
 
@@ -117,6 +119,8 @@
         (advancedFilters.hasImageGen ? 1 : 0) +
         (advancedFilters.hasWebSearch ? 1 : 0) +
         (advancedFilters.isDeepResearch ? 1 : 0) +
+        (advancedFilters.hasCanvas ? 1 : 0) +
+        (advancedFilters.hasCode ? 1 : 0) +
         (advancedFilters.dateFrom || advancedFilters.dateTo ? 1 : 0);
 
     // Apply advanced filters to a conversation
