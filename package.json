@@ -57,6 +57,7 @@
     "@tiptap/extension-placeholder": "^3.13.0",
     "@tiptap/starter-kit": "^3.13.0",
     "dexie": "^4.2.1",
+    "fuse.js": "^7.1.0",
     "highlight.js": "^11.11.1",
     "katex": "^0.16.27",
     "lucide-svelte": "^0.562.0",

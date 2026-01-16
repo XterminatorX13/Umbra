@@ -8,6 +8,7 @@
     import BorderBeam from "../components/ui/BorderBeam.svelte";
     import IconPicker from "../components/features/IconPicker.svelte";
     import ColorPicker from "../components/features/ColorPicker.svelte";
+    import Fuse from "fuse.js";
 
     export let conversations = [];
     export let metadata = {};
@@ -102,6 +103,17 @@
             .filter(Boolean),
     ]);
     $: folders = Array.from(foldersSet).sort();
+
+    // Fuse Instance for Fuzzy Search
+    let fuse;
+    $: if (conversations.length > 0) {
+        fuse = new Fuse(conversations, {
+            keys: ["title"],
+            threshold: 0.4, // 0.0 = perfect match, 1.0 = match anything
+            distance: 100,
+            shouldSort: true,
+        });
+    }
 
     // Advanced filter computed properties
     $: hasActiveAdvancedFilters =
@@ -202,6 +214,17 @@
         }
 
         // Standard title-based filtering + advanced filters
+        let fuzzyMatches = null;
+        if (
+            activeFolder === "__ALL__" &&
+            searchTerm &&
+            searchMode === "title" &&
+            fuse
+        ) {
+            const results = fuse.search(searchTerm);
+            fuzzyMatches = new Set(results.map((r) => getConvKey(r.item)));
+        }
+
         return conversations.filter((c) => {
             const key = getConvKey(c);
             const meta = metadata[key] ?? {};
@@ -230,6 +253,10 @@
 
             if (activeFolder === "__ALL__") {
                 if (searchTerm && searchMode === "title") {
+                    if (fuzzyMatches) {
+                        return fuzzyMatches.has(key);
+                    }
+                    // Fallback to simple includes search
                     const q = searchTerm.toLowerCase();
                     return (c.title || "").toLowerCase().includes(q);
                 }
