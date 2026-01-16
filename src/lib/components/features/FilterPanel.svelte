@@ -98,6 +98,8 @@
             hasImageGen: null,
             hasWebSearch: null,
             isDeepResearch: null,
+            hasCanvas: null,
+            hasCode: null,
             dateFrom: null,
             dateTo: null,
         };
