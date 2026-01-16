@@ -2,9 +2,9 @@
     import { onMount, onDestroy } from "svelte";
     import Sidebar from "./lib/Sidebar.svelte";
     import ChatView from "./lib/ChatView.svelte";
-    import DebugPanel from "./lib/components/DebugPanel.svelte";
-    import CommandPalette from "./lib/components/CommandPalette.svelte";
-    import GlitchButton from "./lib/components/GlitchButton.svelte";
+    import DebugPanel from "./lib/components/features/DebugPanel.svelte";
+    import CommandPalette from "./lib/components/features/CommandPalette.svelte";
+    import GlitchButton from "./lib/components/ui/GlitchButton.svelte";
     import { normalizeConversation, getConvKey } from "./lib/utils.js";
     import {
         loadConversations,
@@ -14,7 +14,7 @@
         migrateFromLocalStorage,
         getDbStats,
     } from "./lib/db.js";
-    import Toast from "./lib/components/Toast.svelte";
+    import Toast from "./lib/components/ui/Toast.svelte";
     import { toasts } from "./lib/stores.js";
 
     let allConversations = [];

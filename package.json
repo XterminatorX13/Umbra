@@ -1,17 +1,18 @@
 {
-  "name": "chatgpt-pkm",
-  "productName": "ChatGPT PKM 2.0",
+  "name": "aurora-chat-manager",
+  "productName": "Aurora Chat Manager",
   "private": true,
   "version": "2.0.0",
-  "description": "Sistema de gerenciamento pessoal de conhecimento para ChatGPT",
+  "description": "Gerenciador de conversas e conhecimento para IA",
   "author": "Your Name",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "bun scripts/dev.js",
+    "dev": "vite",
     "vite": "vite",
     "electron": "electron",
     "build": "vite build",
+    "build:standalone": "vite build --config vite.config.standalone.js",
     "preview": "vite preview",
     "electron:build": "vite build && electron-builder",
     "electron:build:win": "vite build && electron-builder --win --x64",
@@ -26,6 +27,7 @@
     "electron": "^28.0.0",
     "electron-builder": "^24.9.1",
     "npm-run-all": "^4.1.5",
+    "vite-plugin-singlefile": "^2.3.0",
     "postcss": "^8.4.31",
     "svelte": "^4.2.0",
     "tailwind-merge": "^3.4.0",
@@ -49,8 +51,8 @@
     "tailwind": "^4.0.0"
   },
   "build": {
-    "appId": "com.chatgpt-pkm.app",
-    "productName": "ChatGPT PKM 2.0",
+    "appId": "com.aurora-chat-manager.app",
+    "productName": "Aurora Chat Manager",
     "win": {
       "target": [
         {
@@ -72,7 +74,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "ChatGPT PKM 2.0"
+      "shortcutName": "Aurora Chat Manager"
     },
     "directories": {
       "output": "release",

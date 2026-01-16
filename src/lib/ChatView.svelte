@@ -30,13 +30,13 @@
     List,
     Image,
   } from "lucide-svelte";
-  import BorderBeam from "./components/BorderBeam.svelte";
-  import RichTextEditor from "./components/RichTextEditor.svelte";
-  import SpotlightInput from "./components/SpotlightInput.svelte";
-  import EmptyState from "./components/EmptyState.svelte";
-  import ShineBorder from "./components/ShineBorder.svelte";
-  import SourcesPanel from "./components/SourcesPanel.svelte";
-  import WikiHoverPreview from "./components/WikiHoverPreview.svelte";
+  import BorderBeam from "./components/ui/BorderBeam.svelte";
+  import RichTextEditor from "./components/features/RichTextEditor.svelte";
+  import SpotlightInput from "./components/layout/SpotlightInput.svelte";
+  import EmptyState from "./components/layout/EmptyState.svelte";
+  import ShineBorder from "./components/ui/ShineBorder.svelte";
+  import SourcesPanel from "./components/features/SourcesPanel.svelte";
+  import WikiHoverPreview from "./components/features/WikiHoverPreview.svelte";
 
   export let conversation = null;
   export let meta = {};
