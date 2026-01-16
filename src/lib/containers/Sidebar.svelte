@@ -186,6 +186,8 @@
                     if (hasImageGen && !fm.hasImageGen) return false;
                     if (hasWebSearch && !fm.hasWebSearch) return false;
                     if (isDeepResearch && !fm.isDeepResearch) return false;
+
+                    if (isReasoning && !fm.isReasoning) return false;
                     if (hasCanvas && !fm.hasCanvas) return false;
                     if (hasCode && !fm.hasCode) return false;
                     if (dateFrom && fm.createDate && fm.createDate < dateFrom)
@@ -213,6 +215,8 @@
                 if (hasImageGen && !fm.hasImageGen) return false;
                 if (hasWebSearch && !fm.hasWebSearch) return false;
                 if (isDeepResearch && !fm.isDeepResearch) return false;
+
+                if (isReasoning && !fm.isReasoning) return false;
                 if (hasCanvas && !fm.hasCanvas) return false;
                 if (hasCode && !fm.hasCode) return false;
                 if (dateFrom && fm.createDate && fm.createDate < dateFrom)
