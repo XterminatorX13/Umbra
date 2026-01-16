@@ -2,6 +2,7 @@
     import { createEventDispatcher } from "svelte";
     import { getConvKey, formatDate } from "../../utils/data.js";
     import BorderBeam from "../ui/BorderBeam.svelte";
+    import VirtualList from "../layout/VirtualList.svelte";
 
     export let title = "";
     export let icon = "📁";
@@ -84,16 +85,13 @@
         isDragging = false;
     }
 
-    let renderLimit = 50;
-    function handleScroll(e) {
-        const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollTop + clientHeight > scrollHeight - 50) {
-            renderLimit += 50;
-        }
-    }
+    // Virtual List Reference
+    let virtualList;
 
-    // Reset limit when category changes or closes
-    $: if (!isOpen) renderLimit = 50;
+    export function scrollToIndex(index) {
+        // 64 is the itemHeight used in markup
+        if (virtualList) virtualList.scrollTo(index * 64);
+    }
 
     // Highlight search term in snippet
     function highlightSnippet(text, term) {
@@ -120,74 +118,84 @@
         </div>
     </BorderBeam>
 
-    <!-- Lista de conversas com Lazy Rendering -->
+    <!-- Lista de conversas com Virtual Scrolling -->
     {#if isOpen && conversations.length > 0}
         <div
-            on:scroll={handleScroll}
             class="conversation-list custom-scrollbar"
+            style="height: 65vh; display: flex; flex-direction: column;"
         >
-            {#each conversations.slice(0, renderLimit) as conv (getConvKey(conv))}
-                {@const key = getConvKey(conv)}
-                {@const meta = metadata[key] ?? {}}
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div
-                    on:click={() => select(key)}
-                    class="conv-row"
-                    class:active={activeId === key}
-                    draggable="true"
-                    on:dragstart={(e) => handleDragStart(e, key)}
-                    on:dragend={handleDragEnd}
-                    on:contextmenu={(e) => openContextMenu(e, key)}
-                >
-                    <div class="conv-content-wrapper">
-                        <div class="conv-title">
-                            {conv.title || "(Sem título)"}
+            <VirtualList
+                items={conversations}
+                itemHeight={64}
+                let:visibleItems
+                bind:this={virtualList}
+            >
+                {#each visibleItems as conv (getConvKey(conv))}
+                    {@const key = getConvKey(conv)}
+                    {@const meta = metadata[key] ?? {}}
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <div
+                        on:click={() => select(key)}
+                        class="conv-row"
+                        class:active={activeId === key}
+                        draggable="true"
+                        on:dragstart={(e) => handleDragStart(e, key)}
+                        on:dragend={handleDragEnd}
+                        on:contextmenu={(e) => openContextMenu(e, key)}
+                    >
+                        <div class="conv-content-wrapper">
+                            <div class="conv-title">
+                                {conv.title || "(Sem título)"}
+                            </div>
+
+                            <div class="conv-meta">
+                                <span>💬 {conv.messages.length}</span>
+                                {#if conv.createTime}
+                                    <span style="opacity:0.6"
+                                        >• {formatDate(conv.createTime)}</span
+                                    >
+                                {/if}
+                                {#if meta.favorite}<span class="fav-icon"
+                                        >★</span
+                                    >{/if}
+                                {#if meta.folder}<span>📁 {meta.folder}</span
+                                    >{/if}
+                            </div>
+
+                            {#if getSnippet}
+                                {@const snippet = getSnippet(key)}
+                                {#if snippet}
+                                    <!-- Snippet fixed height to avoid layout shift in virtual list -->
+                                    <div
+                                        class="conv-snippet"
+                                        style="height: 34px; overflow: hidden;"
+                                    >
+                                        {@html highlightSnippet(
+                                            snippet,
+                                            searchTerm,
+                                        )}
+                                    </div>
+                                {/if}
+                            {/if}
                         </div>
 
-                        <div class="conv-meta">
-                            <span>💬 {conv.messages.length}</span>
-                            {#if conv.createTime}
-                                <span style="opacity:0.6"
-                                    >• {formatDate(conv.createTime)}</span
-                                >
-                            {/if}
-                            {#if meta.favorite}<span class="fav-icon">★</span
-                                >{/if}
-                            {#if meta.folder}<span>📁 {meta.folder}</span>{/if}
-                        </div>
+                        <!-- Context Menu Button -->
+                        <button
+                            class="context-btn"
+                            on:click={(e) => openContextMenu(e, key)}
+                            title="Opções"
+                        >
+                            ⋮
+                        </button>
 
-                        {#if getSnippet}
-                            {@const snippet = getSnippet(key)}
-                            {#if snippet}
-                                <div class="conv-snippet">
-                                    {@html highlightSnippet(
-                                        snippet,
-                                        searchTerm,
-                                    )}
-                                </div>
-                            {/if}
+                        <!-- Active Glow Effect -->
+                        {#if activeId === key}
+                            <div class="active-glow"></div>
                         {/if}
                     </div>
-
-                    <!-- Context Menu Button -->
-                    <button
-                        class="context-btn"
-                        on:click={(e) => openContextMenu(e, key)}
-                        title="Opções"
-                    >
-                        ⋮
-                    </button>
-
-                    <!-- Active Glow Effect -->
-                    {#if activeId === key}
-                        <div class="active-glow"></div>
-                    {/if}
-                </div>
-            {/each}
-            {#if renderLimit < conversations.length}
-                <div class="loading-indicator">Carregando mais...</div>
-            {/if}
+                {/each}
+            </VirtualList>
         </div>
     {/if}
 

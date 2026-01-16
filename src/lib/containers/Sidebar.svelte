@@ -55,6 +55,10 @@
     let pendingIcon = "📁";
     let pendingColor = "#7c3aed";
 
+    // References for Virtual List navigation
+    let catDropdownAll;
+    let catDropdownFav;
+
     // Folder metadata (icons & colors)
     const FOLDER_META_KEY = "pkm_folder_meta_v1";
     let folderMeta = {};
@@ -535,20 +539,17 @@
     let scrollContainer;
 
     // Navigate to specific index
+    // Navigate to specific index
     function navigateToIndex(index) {
         if (index < 0 || index >= filtered.length) return;
         const key = getConvKey(filtered[index]);
         select(key);
 
-        // Scroll into view
-        if (scrollContainer) {
-            const rows = scrollContainer.querySelectorAll(".conv-row");
-            if (rows[index]) {
-                rows[index].scrollIntoView({
-                    behavior: "smooth",
-                    block: "center",
-                });
-            }
+        // Delegate scrolling to the active CategoryDropdown with VirtualList
+        if (activeFolder === "__ALL__" && catDropdownAll) {
+            catDropdownAll.scrollToIndex(index);
+        } else if (activeFolder === "__FAV__" && catDropdownFav) {
+            catDropdownFav.scrollToIndex(index);
         }
     }
 
@@ -782,6 +783,7 @@
                 <div style="padding-left: 10px;">
                     <!-- Todas -->
                     <CategoryDropdown
+                        bind:this={catDropdownAll}
                         title="Todas"
                         icon="📚"
                         conversations={searchTerm || hasActiveAdvancedFilters
@@ -803,6 +805,7 @@
 
                     <!-- Favoritos -->
                     <CategoryDropdown
+                        bind:this={catDropdownFav}
                         title="Favoritos"
                         icon="⭐"
                         conversations={hasActiveAdvancedFilters

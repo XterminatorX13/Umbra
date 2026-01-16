@@ -36,6 +36,12 @@
 
         return cleanup;
     });
+
+    export function scrollTo(top) {
+        if (viewport) {
+            viewport.scrollTop = top;
+        }
+    }
 </script>
 
 <div
