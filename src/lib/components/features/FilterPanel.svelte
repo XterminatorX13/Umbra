@@ -12,6 +12,7 @@
         RotateCcw,
         FileText,
         Code,
+        Brain,
     } from "lucide-svelte";
     import { fly, fade } from "svelte/transition";
     import { portal } from "../../actions/portal.js";
@@ -24,6 +25,7 @@
         hasImageGen: null,
         hasWebSearch: null,
         isDeepResearch: null,
+        isReasoning: null,
         hasCanvas: null,
         hasCode: null,
         dateFrom: null,
@@ -98,6 +100,7 @@
             hasImageGen: null,
             hasWebSearch: null,
             isDeepResearch: null,
+            isReasoning: null,
             hasCanvas: null,
             hasCode: null,
             dateFrom: null,
@@ -266,6 +269,31 @@
                             <span class="feature-desc">Pesquisa Profunda</span>
                         </div>
                         {#if filters.isDeepResearch}
+                            <div
+                                class="check-badge"
+                                transition:fade={{ duration: 150 }}
+                            >
+                                <Check size={12} />
+                            </div>
+                        {/if}
+                    </button>
+
+                    <!-- Feature: Reasoning -->
+                    <button
+                        class="feature-card"
+                        class:active={filters.isReasoning}
+                        on:click={() => toggleFeature("isReasoning")}
+                    >
+                        <div class="feature-icon-box purple">
+                            <Brain size={18} />
+                        </div>
+                        <div class="feature-info">
+                            <span class="feature-name">Reasoning</span>
+                            <span class="feature-desc"
+                                >Pensamento Extendido</span
+                            >
+                        </div>
+                        {#if filters.isReasoning}
                             <div
                                 class="check-badge"
                                 transition:fade={{ duration: 150 }}

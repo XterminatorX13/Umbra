@@ -109,6 +109,7 @@
         advancedFilters.hasImageGen ||
         advancedFilters.hasWebSearch ||
         advancedFilters.isDeepResearch ||
+        advancedFilters.isReasoning ||
         advancedFilters.hasCanvas ||
         advancedFilters.hasCode ||
         advancedFilters.dateFrom ||
@@ -119,6 +120,7 @@
         (advancedFilters.hasImageGen ? 1 : 0) +
         (advancedFilters.hasWebSearch ? 1 : 0) +
         (advancedFilters.isDeepResearch ? 1 : 0) +
+        (advancedFilters.isReasoning ? 1 : 0) +
         (advancedFilters.hasCanvas ? 1 : 0) +
         (advancedFilters.hasCode ? 1 : 0) +
         (advancedFilters.dateFrom || advancedFilters.dateTo ? 1 : 0);
@@ -137,6 +139,7 @@
         if (advancedFilters.hasImageGen && !fm.hasImageGen) return false;
         if (advancedFilters.hasWebSearch && !fm.hasWebSearch) return false;
         if (advancedFilters.isDeepResearch && !fm.isDeepResearch) return false;
+        if (advancedFilters.isReasoning && !fm.isReasoning) return false;
 
         // Date filters
         if (advancedFilters.dateFrom && fm.createDate) {
@@ -160,6 +163,7 @@
             hasImageGen,
             hasWebSearch,
             isDeepResearch,
+            isReasoning,
             hasCanvas,
             hasCode,
             dateFrom,
