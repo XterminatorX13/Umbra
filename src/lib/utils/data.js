@@ -164,7 +164,7 @@ export function deduplicateConversations(existingConversations, newConversations
             const existingUpdate = existing.updateTime || existing.createTime || 0;
             const newUpdate = newConv.updateTime || newConv.createTime || 0;
 
-            if (newUpdate > existingUpdate) {
+            if (newUpdate >= existingUpdate) {
                 // Newer version found - update
                 unique.push(newConv);
                 updated.push({ title: newConv.title, key });
