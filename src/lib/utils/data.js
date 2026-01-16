@@ -87,18 +87,62 @@ export function normalizeConversation(conv) {
     };
     modelInfo.modelName = getModelName(modelInfo.modelSlug);
 
+    // ════════════════════════════════════════════════════════════════════════
+    // RAW SCAN for filter metadata (includes tool messages that aren't displayed)
+    // ════════════════════════════════════════════════════════════════════════
+    let rawHasCanvas = false;
+    let rawHasCode = false;
+    let rawHasWebSearch = false;
+    let rawHasImageGen = false;
+
+    for (const key in mapping) {
+        const node = mapping[key];
+        if (!node?.message) continue;
+        const msg = node.message;
+        const meta = msg.metadata || {};
+        const authorName = msg.author?.name || '';
+        const recipient = msg.recipient || '';
+
+        // Canvas detection (multiple signals)
+        if (meta.canvas || authorName.startsWith('canmore') || recipient.startsWith('canmore')) {
+            rawHasCanvas = true;
+        }
+
+        // Code Interpreter detection
+        if (authorName === 'python' || authorName === 'code_interpreter' ||
+            meta.content_type === 'execution_output' || msg.content?.content_type === 'execution_output') {
+            rawHasCode = true;
+        }
+
+        // Web Search detection
+        if (authorName === 'web.run' || authorName.startsWith('web.') ||
+            meta.search_result_groups || meta.real_author === 'tool:web') {
+            rawHasWebSearch = true;
+        }
+
+        // DALL-E / Image Gen detection
+        if (meta.dalle || authorName.startsWith('t2uay3k') || authorName === 'dalle.text2im') {
+            rawHasImageGen = true;
+        }
+    }
+
     // Aggregate filter metadata at conversation level
     const filterMeta = {
-        hasImageGen: messages.some(m => m.imageGen !== null && m.imageGen !== undefined),
-        hasWebSearch: messages.some(m => m.tools?.some(t => t.type === 'web_search' || t.type === 'web_results' || t.type === 'browser')),
-        hasCanvas: messages.some(m => m.canvasContent || m.tools?.some(t => t.type === 'canvas')),
-        hasCode: messages.some(m => m.tools?.some(t => t.type === 'code' || t.type === 'code_output') || m.toolCalls?.some(tc => tc.name === 'python' || tc.name === 'code_interpreter')),
+        hasImageGen: rawHasImageGen || messages.some(m => m.imageGen !== null && m.imageGen !== undefined),
+        hasWebSearch: rawHasWebSearch || messages.some(m => m.tools?.some(t => t.type === 'web_search' || t.type === 'web_results' || t.type === 'browser')),
+        hasCanvas: rawHasCanvas || messages.some(m => m.canvasContent || m.tools?.some(t => t.type === 'canvas')),
+        hasCode: rawHasCode || messages.some(m => m.tools?.some(t => t.type === 'code' || t.type === 'code_output') || m.toolCalls?.some(tc => tc.name === 'python' || tc.name === 'code_interpreter')),
         hasSources: messages.some(m => m.sources?.length > 0),
         modelSlug: modelInfo.modelSlug,
         modelName: modelInfo.modelName,
         isDeepResearch: modelInfo.isDeepResearch,
         createDate: createTime ? new Date(createTime * 1000) : null
     };
+
+    // DEBUG: Log filterMeta for conversations with Canvas/Code
+    if (filterMeta.hasCanvas || filterMeta.hasCode) {
+        console.log(`[FilterMeta] ${title}: Canvas=${filterMeta.hasCanvas}, Code=${filterMeta.hasCode}`);
+    }
 
     return {
         id,
