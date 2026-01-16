@@ -10,6 +10,8 @@
         ChevronDown,
         Check,
         RotateCcw,
+        FileText,
+        Code,
     } from "lucide-svelte";
     import { fly, fade } from "svelte/transition";
     import { portal } from "../../actions/portal.js";
@@ -22,6 +24,8 @@
         hasImageGen: null,
         hasWebSearch: null,
         isDeepResearch: null,
+        hasCanvas: null,
+        hasCode: null,
         dateFrom: null,
         dateTo: null,
     };
@@ -123,6 +127,8 @@
         filters.hasImageGen ||
         filters.hasWebSearch ||
         filters.isDeepResearch ||
+        filters.hasCanvas ||
+        filters.hasCode ||
         filters.dateFrom ||
         filters.dateTo;
 
@@ -131,6 +137,8 @@
         (filters.hasImageGen ? 1 : 0) +
         (filters.hasWebSearch ? 1 : 0) +
         (filters.isDeepResearch ? 1 : 0) +
+        (filters.hasCanvas ? 1 : 0) +
+        (filters.hasCode ? 1 : 0) +
         (filters.dateFrom || filters.dateTo ? 1 : 0);
 
     let panelRef;
@@ -279,6 +287,52 @@
                             <span class="feature-desc">Acesso à Internet</span>
                         </div>
                         {#if filters.hasWebSearch}
+                            <div
+                                class="check-badge"
+                                transition:fade={{ duration: 150 }}
+                            >
+                                <Check size={12} />
+                            </div>
+                        {/if}
+                    </button>
+
+                    <!-- Feature: Canvas -->
+                    <button
+                        class="feature-card"
+                        class:active={filters.hasCanvas}
+                        on:click={() => toggleFeature("hasCanvas")}
+                    >
+                        <div class="feature-icon-box purple">
+                            <FileText size={18} />
+                        </div>
+                        <div class="feature-info">
+                            <span class="feature-name">Canvas</span>
+                            <span class="feature-desc">Documentos</span>
+                        </div>
+                        {#if filters.hasCanvas}
+                            <div
+                                class="check-badge"
+                                transition:fade={{ duration: 150 }}
+                            >
+                                <Check size={12} />
+                            </div>
+                        {/if}
+                    </button>
+
+                    <!-- Feature: Code Interpreter -->
+                    <button
+                        class="feature-card"
+                        class:active={filters.hasCode}
+                        on:click={() => toggleFeature("hasCode")}
+                    >
+                        <div class="feature-icon-box orange">
+                            <Code size={18} />
+                        </div>
+                        <div class="feature-info">
+                            <span class="feature-name">Code</span>
+                            <span class="feature-desc">Python / Análise</span>
+                        </div>
+                        {#if filters.hasCode}
                             <div
                                 class="check-badge"
                                 transition:fade={{ duration: 150 }}
@@ -625,6 +679,14 @@
     .feature-card.active .feature-icon-box.blue {
         background: rgba(59, 130, 246, 0.2);
         color: #60a5fa;
+    }
+    .feature-card.active .feature-icon-box.purple {
+        background: rgba(139, 92, 246, 0.2);
+        color: #a78bfa;
+    }
+    .feature-card.active .feature-icon-box.orange {
+        background: rgba(249, 115, 22, 0.2);
+        color: #fb923c;
     }
 
     .feature-info {
