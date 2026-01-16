@@ -1,13 +1,13 @@
 <script>
     import { createEventDispatcher, onMount, onDestroy } from "svelte";
-    import { getConvKey } from "./utils";
-    import { addToast } from "./stores.js";
-    import CategoryDropdown from "./components/features/CategoryDropdown.svelte";
-    import InputModal from "./components/features/InputModal.svelte";
-    import FilterPanel from "./components/features/FilterPanel.svelte";
-    import BorderBeam from "./components/ui/BorderBeam.svelte";
-    import IconPicker from "./components/features/IconPicker.svelte";
-    import ColorPicker from "./components/features/ColorPicker.svelte";
+    import { getConvKey } from "../utils/data.js";
+    import { addToast } from "../stores/index.js";
+    import CategoryDropdown from "../components/features/CategoryDropdown.svelte";
+    import InputModal from "../components/features/InputModal.svelte";
+    import FilterPanel from "../components/features/FilterPanel.svelte";
+    import BorderBeam from "../components/ui/BorderBeam.svelte";
+    import IconPicker from "../components/features/IconPicker.svelte";
+    import ColorPicker from "../components/features/ColorPicker.svelte";
 
     export let conversations = [];
     export let metadata = {};

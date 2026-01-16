@@ -1,6 +1,6 @@
 <script>
     import { createEventDispatcher, onMount, onDestroy } from "svelte";
-    import { getConvKey } from "./utils";
+    import { getConvKey } from "../utils/data.js";
 
     export let conversations = [];
     export let metadata = {};

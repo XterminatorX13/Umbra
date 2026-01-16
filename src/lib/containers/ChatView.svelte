@@ -1,9 +1,9 @@
 <script>
   import { createEventDispatcher, onMount, onDestroy, tick } from "svelte";
-  import { getConvKey } from "./utils";
-  import { addToast } from "./stores.js";
-  import { parseMarkdown } from "./utils/markdown.js";
-  import "./styles/markdown.css";
+  import { getConvKey } from "../utils/data.js";
+  import { addToast } from "../stores/index.js";
+  import { parseMarkdown } from "../utils/markdown.js";
+  import "../styles/markdown.css";
   import {
     Folder,
     Tags,
@@ -30,13 +30,13 @@
     List,
     Image,
   } from "lucide-svelte";
-  import BorderBeam from "./components/ui/BorderBeam.svelte";
-  import RichTextEditor from "./components/features/RichTextEditor.svelte";
-  import SpotlightInput from "./components/layout/SpotlightInput.svelte";
-  import EmptyState from "./components/layout/EmptyState.svelte";
-  import ShineBorder from "./components/ui/ShineBorder.svelte";
-  import SourcesPanel from "./components/features/SourcesPanel.svelte";
-  import WikiHoverPreview from "./components/features/WikiHoverPreview.svelte";
+  import BorderBeam from "../components/ui/BorderBeam.svelte";
+  import RichTextEditor from "../components/features/RichTextEditor.svelte";
+  import SpotlightInput from "../components/layout/SpotlightInput.svelte";
+  import EmptyState from "../components/layout/EmptyState.svelte";
+  import ShineBorder from "../components/ui/ShineBorder.svelte";
+  import SourcesPanel from "../components/features/SourcesPanel.svelte";
+  import WikiHoverPreview from "../components/features/WikiHoverPreview.svelte";
 
   export let conversation = null;
   export let meta = {};

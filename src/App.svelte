@@ -1,11 +1,11 @@
 <script>
     import { onMount, onDestroy } from "svelte";
-    import Sidebar from "./lib/Sidebar.svelte";
-    import ChatView from "./lib/ChatView.svelte";
+    import Sidebar from "./lib/containers/Sidebar.svelte";
+    import ChatView from "./lib/containers/ChatView.svelte";
     import DebugPanel from "./lib/components/features/DebugPanel.svelte";
     import CommandPalette from "./lib/components/features/CommandPalette.svelte";
     import GlitchButton from "./lib/components/ui/GlitchButton.svelte";
-    import { normalizeConversation, getConvKey } from "./lib/utils.js";
+    import { normalizeConversation, getConvKey } from "./lib/utils/data.js";
     import {
         loadConversations,
         saveConversations,
@@ -13,9 +13,9 @@
         saveAllMetadata,
         migrateFromLocalStorage,
         getDbStats,
-    } from "./lib/db.js";
+    } from "./lib/services/database.js";
     import Toast from "./lib/components/ui/Toast.svelte";
-    import { toasts } from "./lib/stores.js";
+    import { toasts } from "./lib/stores/index.js";
 
     let allConversations = [];
     let metadata = {};

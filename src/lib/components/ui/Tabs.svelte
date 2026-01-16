@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { cn } from "../../cn";
+    import { cn } from "../../utils/cn";
 
     export let value: string;
     export let tabs: Array<{ id: string; label: string }> = [];

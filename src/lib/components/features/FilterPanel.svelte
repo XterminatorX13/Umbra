@@ -12,7 +12,7 @@
         RotateCcw,
     } from "lucide-svelte";
     import { fly, fade } from "svelte/transition";
-    import { portal } from "../../actions.js";
+    import { portal } from "../../actions/portal.js";
     import Calendar from "./Calendar.svelte";
 
     export let conversations = [];

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { writable } from "svelte/store";
-    import { cn } from "../../cn";
+    import { cn } from "../../utils/cn";
 
     export let toasts = writable<
         Array<{

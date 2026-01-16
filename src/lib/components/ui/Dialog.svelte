@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { cn } from "../../cn";
+    import { cn } from "../../utils/cn";
     import { createEventDispatcher } from "svelte";
 
     export let open = false;

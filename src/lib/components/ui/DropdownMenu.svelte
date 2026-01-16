@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { cn } from "../../cn";
+    import { cn } from "../../utils/cn";
 
     export let open = false;
     export let items: Array<{ id: string; label: string; icon?: string }> = [];

@@ -1,6 +1,6 @@
 <script>
     import { createEventDispatcher } from "svelte";
-    import { getConvKey, formatDate } from "../../utils.js";
+    import { getConvKey, formatDate } from "../../utils/data.js";
     import BorderBeam from "../ui/BorderBeam.svelte";
 
     export let title = "";
