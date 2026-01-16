@@ -15,12 +15,15 @@ const MODEL_ALIASES = {
 function getModelName(slug) {
     if (!slug) return 'Unknown';
 
+    // Handle "auto" mode specifically
+    if (slug === 'auto') return 'Auto (Dynamic Mode)';
+
     // Check known aliases first
     if (MODEL_ALIASES[slug]) return MODEL_ALIASES[slug];
 
     // Auto-format pattern: gpt-X.X → GPT-X.X (preserve dots!)
     if (slug.startsWith('gpt-')) {
-        // Get version part after "gpt-", keeping dots for versions like 5.2
+        // Get version part after "gpt-", keeping dots for versions like 5.2 or 5.3
         const version = slug.slice(4);
         return 'GPT-' + version;
     }
