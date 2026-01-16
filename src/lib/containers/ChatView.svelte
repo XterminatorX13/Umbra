@@ -411,7 +411,7 @@
             {conversation.title || "(Sem título)"}
           </div>
           <div
-            style="font-size: 11px; color: var(--color-text-secondary); display: flex; gap: 8px;"
+            style="font-size: 11px; color: var(--color-text-secondary); display: flex; gap: 8px; flex-wrap: wrap; align-items: center;"
           >
             <span style="display:flex; align-items:center; gap:4px;"
               ><MessageSquare size={10} />
@@ -419,6 +419,29 @@
             >
             <span>·</span>
             <span>📅 {epochToString(conversation.createTime)}</span>
+            {#if conversation.filterMeta?.isReasoning}
+              <span>·</span>
+              <span
+                class="reasoning-badge"
+                title="Modelo usou raciocínio estendido"
+              >
+                🧠 {#if conversation.filterMeta.reasoningTime > 60}
+                  Pensou por {Math.floor(
+                    conversation.filterMeta.reasoningTime / 60,
+                  )}m {conversation.filterMeta.reasoningTime % 60}s
+                {:else if conversation.filterMeta.reasoningTime > 0}
+                  Pensou por {conversation.filterMeta.reasoningTime}s
+                {:else}
+                  Reasoning
+                {/if}
+              </span>
+            {/if}
+            {#if conversation.filterMeta?.isDeepResearch}
+              <span>·</span>
+              <span class="research-badge" title="Deep Research utilizado">
+                🔬 Deep Research
+              </span>
+            {/if}
           </div>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
@@ -1043,6 +1066,33 @@
       opacity: 0.4;
       transform: scale(1.05);
     }
+  }
+
+  /* Reasoning & Research Badges */
+  .reasoning-badge {
+    background: linear-gradient(
+      135deg,
+      rgba(139, 92, 246, 0.2),
+      rgba(168, 85, 247, 0.1)
+    );
+    padding: 2px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    color: #a78bfa;
+    font-weight: 500;
+  }
+
+  .research-badge {
+    background: linear-gradient(
+      135deg,
+      rgba(59, 130, 246, 0.2),
+      rgba(99, 102, 241, 0.1)
+    );
+    padding: 2px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #60a5fa;
+    font-weight: 500;
   }
 
   @keyframes messageIn {
