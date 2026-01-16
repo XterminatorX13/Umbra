@@ -7,24 +7,24 @@ export default defineConfig({
   base: './', // Important for Electron to load assets with relative paths
 
   build: {
-    // Code Splitting Optimization
+    outDir: 'release/web',
     rollupOptions: {
       output: {
         manualChunks: {
-          // Markdown rendering libs (grandes)
-          'markdown-renderer': ['marked', 'marked-highlight', 'marked-katex-extension'],
-          // Syntax highlighting
-          'syntax-highlighter': ['highlight.js'],
-          // Math rendering
+          'svelte-runtime': ['svelte', 'svelte/internal', 'svelte/store'],
+          'markdown': ['marked'],
           'math-renderer': ['katex'],
-          // Svelte runtime
-          'svelte-runtime': ['svelte', 'svelte/internal'],
+          'syntax-highlighter': ['highlight.js'],
+          'icons': ['lucide-svelte'],
+          'database': ['dexie'],
         }
       }
     },
-    // Aumenta o limite do warning (opcional, mas agora está bem otimizado)
-    chunkSizeWarningLimit: 600,
-    // Minificação com esbuild (mais rápido e já vem com Vite)
+    // Limite do warning (500KB para chunks)
+    chunkSizeWarningLimit: 500,
+    // Minificação agressiva com esbuild
     minify: 'esbuild',
+    // Target moderno para menos polyfills
+    target: 'es2020',
   }
 })

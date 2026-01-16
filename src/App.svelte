@@ -1,9 +1,16 @@
 <script>
     import { onMount, onDestroy } from "svelte";
-    import Sidebar from "./lib/Sidebar.svelte";
-    import ChatView from "./lib/ChatView.svelte";
-    import DebugPanel from "./lib/components/DebugPanel.svelte";
-    import { normalizeConversation, getConvKey } from "./lib/utils.js";
+    import Sidebar from "./lib/containers/Sidebar.svelte";
+    import ChatView from "./lib/containers/ChatView.svelte";
+    import DebugPanel from "./lib/components/features/DebugPanel.svelte";
+    import CommandPalette from "./lib/components/features/CommandPalette.svelte";
+    import GlitchButton from "./lib/components/ui/GlitchButton.svelte";
+    import {
+        normalizeConversation,
+        getConvKey,
+        deduplicateConversations,
+    } from "./lib/utils/data.js";
+    import { addToast } from "./lib/stores/index.js";
     import {
         loadConversations,
         saveConversations,
@@ -11,7 +18,9 @@
         saveAllMetadata,
         migrateFromLocalStorage,
         getDbStats,
-    } from "./lib/db.js";
+    } from "./lib/services/database.js";
+    import Toast from "./lib/components/ui/Toast.svelte";
+    import { toasts } from "./lib/stores/index.js";
 
     let allConversations = [];
     let metadata = {};
@@ -35,7 +44,11 @@
         try {
             const convs = await loadConversations();
             if (convs.length > 0) {
-                allConversations = convs.map(normalizeConversation);
+                // Normalize AND sort by updateTime desc
+                allConversations = convs
+                    .map(normalizeConversation)
+                    .sort((a, b) => (b.updateTime || 0) - (a.updateTime || 0));
+
                 showWelcome = false;
                 console.log(
                     `📂 Loaded ${allConversations.length} conversations`,
@@ -94,18 +107,68 @@
                 } finally {
                     remaining--;
                     if (remaining === 0) {
-                        allConversations = [
-                            ...allConversations,
-                            ...newConversations,
-                        ];
-                        showWelcome = false;
-
-                        // Auto-save to IndexedDB
-                        saveConversations(
-                            allConversations.map((c) => c.raw || c),
-                        ).catch((e) =>
-                            console.warn("Could not save conversations:", e),
+                        // 🔍 Smart deduplication - only import new conversations
+                        const { unique, stats } = deduplicateConversations(
+                            allConversations,
+                            newConversations,
                         );
+
+                        if (unique.length > 0) {
+                            // Merge: replace updated + add new
+                            const existingKeys = new Set(
+                                unique.map((c) => getConvKey(c)),
+                            );
+                            const filtered = allConversations.filter(
+                                (c) => !existingKeys.has(getConvKey(c)),
+                            );
+                            allConversations = [...filtered, ...unique];
+                            showWelcome = false;
+
+                            // Auto-save to IndexedDB
+                            saveConversations(
+                                allConversations.map((c) => c.raw || c),
+                            ).catch((e) =>
+                                console.warn(
+                                    "Could not save conversations:",
+                                    e,
+                                ),
+                            );
+                        }
+
+                        // 📊 Show silent import stats toast
+                        const messages = [];
+                        if (stats.new > 0)
+                            messages.push(
+                                `${stats.new} nova${stats.new > 1 ? "s" : ""}`,
+                            );
+                        if (stats.updated > 0)
+                            messages.push(
+                                `${stats.updated} atualizada${stats.updated > 1 ? "s" : ""}`,
+                            );
+                        if (stats.duplicates > 0)
+                            messages.push(
+                                `${stats.duplicates} duplicada${stats.duplicates > 1 ? "s" : ""} ignorada${stats.duplicates > 1 ? "s" : ""}`,
+                            );
+
+                        if (messages.length > 0) {
+                            addToast({
+                                type:
+                                    stats.new > 0 || stats.updated > 0
+                                        ? "success"
+                                        : "info",
+                                message: `Importação: ${messages.join(", ")}`,
+                                duration: 4000,
+                            });
+                        } else if (
+                            stats.total > 0 &&
+                            stats.duplicates === stats.total
+                        ) {
+                            addToast({
+                                type: "info",
+                                message: `Todas as ${stats.total} conversas já existem`,
+                                duration: 3000,
+                            });
+                        }
                     }
                 }
             };
@@ -219,8 +282,19 @@
         activeId = null;
         showWelcome = true;
         localStorage.removeItem("auto-saved-conversations");
-        localStorage.setItem(METADATA_FILENAME, "{}");
+        // Clear IndexedDB metadata (use db.js function)
+        saveAllMetadata({});
     }
+
+    // Unified list of folders (Used + Explicit)
+    $: allFolders = Array.from(
+        new Set([
+            ...Object.keys(folderMeta),
+            ...Object.values(metadata)
+                .map((m) => m.folder)
+                .filter(Boolean),
+        ]),
+    ).sort();
 
     // Global hotkeys
     function handleKeydown(e) {
@@ -362,10 +436,7 @@
         <div
             style="background: var(--bg-panel); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;"
         >
-            <label
-                for="main-file-input"
-                style="padding: 6px 12px; font-size: 12px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-2); color: var(--color-text-primary); cursor: pointer; transition: all 0.2s;"
-            >
+            <label for="main-file-input" class="label-btn">
                 📁 Adicionar Arquivos
             </label>
             <input
@@ -379,41 +450,65 @@
 
             <div style="flex: 1;"></div>
 
-            <button
+            <GlitchButton
                 on:click={exportAllMetadata}
-                title="Exportar metadata (Ctrl+E)"
-                style="padding: 6px 10px; font-size: 11px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-2); color: var(--color-text-secondary); cursor: pointer;"
+                size="sm"
+                variant="secondary"
             >
-                💾 Exportar Meta
-            </button>
-            <button
+                💾 Exportar
+            </GlitchButton>
+            <GlitchButton
                 on:click={importMetadata}
-                title="Importar metadata (Ctrl+I)"
-                style="padding: 6px 10px; font-size: 11px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-2); color: var(--color-text-secondary); cursor: pointer;"
+                size="sm"
+                variant="secondary"
             >
-                📥 Importar Meta
-            </button>
-            <button
+                📥 Importar
+            </GlitchButton>
+            <GlitchButton
                 on:click={clearAllData}
-                style="padding: 6px 10px; font-size: 11px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-2); color: #ff6b6b; cursor: pointer;"
+                className="danger"
+                size="sm"
+                variant="danger"
             >
                 🗑️ Limpar Tudo
-            </button>
+            </GlitchButton>
         </div>
 
         <!-- ChatView takes remaining space -->
         <ChatView
             conversation={activeConversation}
             meta={activeMeta}
+            folders={allFolders}
             on:updateMeta={handleUpdateMeta}
             on:toggleFav={handleToggleFav}
             on:deselect={() => (activeId = null)}
+            on:navigate={(e) => {
+                const route = e.detail.route;
+                if (route === "favorites") activeFolder = "__FAV__";
+                else if (route === "stats")
+                    console.log("Stats unimplemented"); // Placeholder for now
+                else if (route === "all") activeFolder = "__ALL__";
+            }}
         />
     </div>
 </div>
 
 <!-- Debug Panel (Ctrl+Shift+D to toggle) -->
 <DebugPanel />
+
+<!-- Command Palette (Ctrl+K) -->
+<CommandPalette
+    conversations={allConversations}
+    on:select={handleSelect}
+    on:action={(e) => {
+        const action = e.detail.action;
+        if (action === "favorites") activeFolder = "__FAV__";
+        else if (action === "all") activeFolder = "__ALL__";
+        else if (action === "stats") console.log("Open stats");
+    }}
+/>
+
+<Toast {toasts} />
 
 <style>
     /* ===== PERFORMANCE OPTIMIZATIONS ===== */
@@ -444,11 +539,5 @@
     label:hover {
         transform: scale(1.05);
         box-shadow: 0 12px 40px rgba(217, 111, 255, 0.6) !important;
-    }
-
-    button:hover {
-        transform: scale(1.05);
-        background: var(--accent-2) !important;
-        color: #fff !important;
     }
 </style>

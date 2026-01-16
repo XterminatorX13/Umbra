@@ -12,6 +12,7 @@
 }
 
 /* Headers */
+/* Headers - Luxury Minimalist Scale */
 .markdown-content h1,
 .markdown-content h2,
 .markdown-content h3,
@@ -21,37 +22,47 @@
     margin-top: 1.5em;
     margin-bottom: 0.5em;
     font-weight: 600;
-    line-height: 1.25;
-    color: var(--text-primary, #f1f5f9);
+    line-height: 1.3;
+    color: var(--color-text-primary);
+    letter-spacing: -0.01em;
 }
 
 .markdown-content h1 {
-    font-size: 2em;
-    border-bottom: 1px solid var(--border-color, #334155);
+    font-size: 1.5em;
+    /* Was 2em - too big */
+    border-bottom: 1px solid var(--border-light);
     padding-bottom: 0.3em;
+    color: var(--highlight);
 }
 
 .markdown-content h2 {
-    font-size: 1.5em;
-    border-bottom: 1px solid var(--border-color, #334155);
+    font-size: 1.25em;
+    /* Was 1.5em */
+    border-bottom: 1px solid var(--border-light);
     padding-bottom: 0.3em;
+    color: var(--color-text-primary);
 }
 
 .markdown-content h3 {
-    font-size: 1.25em;
+    font-size: 1.1em;
+    color: var(--accent-2);
 }
 
 .markdown-content h4 {
     font-size: 1em;
+    font-weight: 600;
 }
 
 .markdown-content h5 {
-    font-size: 0.875em;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
 }
 
 .markdown-content h6 {
     font-size: 0.85em;
-    color: var(--text-secondary, #94a3b8);
+    color: var(--color-text-tertiary);
 }
 
 /* Paragraphs */
@@ -166,12 +177,70 @@
     margin: 2em 0;
 }
 
-/* Images */
+/* Images - Gallery Style */
 .markdown-content img {
     max-width: 100%;
     height: auto;
-    border-radius: 8px;
+    border-radius: 12px;
+    margin: 0.75em 0;
+    border: 1px solid var(--border-color, #334155);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    cursor: zoom-in;
+    background: var(--bg-secondary, #1e293b);
+}
+
+.markdown-content img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 30px rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+}
+
+/* Multiple consecutive images = Gallery Grid */
+.markdown-content p:has(img) + p:has(img),
+.markdown-content img + img {
+    margin-top: 0.5em;
+}
+
+/* Image Gallery Container (when parser detects image_group) */
+.markdown-content .image-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
     margin: 1em 0;
+    padding: 12px;
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 16px;
+    border: 1px solid var(--border-color, #334155);
+}
+
+.markdown-content .image-gallery img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    margin: 0;
+}
+
+/* Single image full width */
+.markdown-content .image-gallery.single-image {
+    display: block;
+}
+
+.markdown-content .image-gallery.single-image img {
+    max-height: 400px;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+/* Image captions */
+.markdown-content .image-caption {
+    text-align: center;
+    font-size: 0.85em;
+    color: var(--text-secondary, #94a3b8);
+    margin-top: 0.5em;
+    font-style: italic;
 }
 
 /* KaTeX Math */
@@ -199,4 +268,63 @@
 /* Emphasis/Italic */
 .markdown-content em {
     font-style: italic;
+}
+/* Aurora Wiki-Links */
+.markdown-content .wiki-link {
+    color: #c084fc;
+    background: rgba(139, 92, 246, 0.1);
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.markdown-content .wiki-link:hover {
+    background: rgba(139, 92, 246, 0.2);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.3);
+    border-color: rgba(139, 92, 246, 0.4);
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.markdown-content .wiki-link::before {
+    content: '#';
+    font-size: 0.8em;
+    opacity: 0.6;
+}
+
+/* Aurora Wiki-Links Refined */
+.markdown-content .wiki-link {
+    color: #c084fc !important;
+    background: rgba(139, 92, 246, 0.08);
+    padding: 2px 8px 2px 6px;
+    border-radius: 999px; /* Pill/Tag shape */
+    font-size: 0.85em;
+    font-weight: 600;
+    text-decoration: none !important;
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    letter-spacing: 0.02em;
+    vertical-align: middle;
+}
+
+.markdown-content .wiki-link:hover {
+    background: rgba(139, 92, 246, 0.2);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.25);
+    border-color: rgba(139, 92, 246, 0.6);
+    transform: translateY(-0.5px);
+    color: #d8b4fe !important;
+}
+
+.markdown-content .wiki-link::before {
+    display: none !important; /* Remove old # */
 }

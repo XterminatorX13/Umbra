@@ -20,6 +20,7 @@ let mainWindow;
 
 const createWindow = () => {
     mainWindow = new BrowserWindow({
+        title: 'Aurora Chat Manager',
         width: 1200,
         height: 800,
         backgroundColor: '#020617',
@@ -43,14 +44,8 @@ const createWindow = () => {
         mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
         mainWindow.webContents.openDevTools();
     } else {
-        // In production, vite builds to dist/
-        // We are in electron/main.js. 
-        // If we run from root: electron . -> main is electron/main.js
-        // dist is at ./dist
-        // But usually electron-builder packages it differently.
-        // Let's assume standard vite build output.
-        // For dev now, we rely on localhost.
-        mainWindow.loadURL('http://localhost:5173');
+        // Production: Load the built file
+        mainWindow.loadFile(path.join(__dirname, '../release/web/index.html'));
     }
 };
 
