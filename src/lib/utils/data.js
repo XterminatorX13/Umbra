@@ -215,12 +215,40 @@ function extractMessagesFromMapping(mapping, fallbackTime, safeUrls = []) {
             continue;
         }
 
-        if (!text.trim()) continue;
-
         const ts = msg.create_time != null ? msg.create_time : (fallbackTime || 0);
 
         // Detect Tools Used (Offline/No-API)
         const tools = detectTools(msg);
+
+        // ═══════════════════════════════════════════════════════════════
+        // NEW: Detect tool_calls explicitly for assistant messages
+        // ═══════════════════════════════════════════════════════════════
+        const rawToolCalls = msg.tool_calls || [];
+        const hasToolCall = rawToolCalls.length > 0;
+        const contentIsNull = !text.trim() && hasToolCall;
+
+        // Parse tool calls into structured format
+        const toolCalls = rawToolCalls.map(tc => ({
+            id: tc.id || 'unknown',
+            type: tc.type || 'function',
+            name: tc.function?.name || tc.tool?.name || 'desconhecida',
+            arguments: tc.function?.arguments || tc.tool?.arguments || '{}'
+        }));
+
+        if (hasToolCall) {
+            tools.push({
+                type: 'tool_call',
+                label: `${toolCalls.length} chamada(s) de ferramenta`,
+                icon: 'function',
+                details: toolCalls
+            });
+            if (contentIsNull) {
+                text = '(Resposta gerada via ferramenta - sem texto direto do assistente)';
+            }
+        }
+
+        // Skip empty text messages (but allow tool call placeholders)
+        if (!text.trim() && !hasToolCall) continue;
 
         // Extract per-message sources from content_references
         const contentRefs = msg.metadata?.content_references || [];
@@ -233,17 +261,32 @@ function extractMessagesFromMapping(mapping, fallbackTime, safeUrls = []) {
         // Detect DALL-E image generation prompts (structured output)
         const imageGenPrompt = parseImageGenPrompt(text);
 
+        // Extract image URLs from content_references (for DALL-E/multimodal)
+        let imageUrls = [];
+        if (contentRefs.some(ref => ref.type === 'image_group')) {
+            imageUrls = contentRefs
+                .filter(ref => ref.type === 'image_group' && ref.images)
+                .flatMap(ref => ref.images
+                    .filter(img => img.image_result?.content_url)
+                    .map(img => img.image_result.content_url)
+                );
+        }
+
         msgs.push({
             id: msg.id || key,
             role,
-            textMarkdown: imageGenPrompt ? null : text, // Don't show raw JSON for image prompts
+            textMarkdown: imageGenPrompt ? null : text,
             textPlain: imageGenPrompt ? imageGenPrompt.prompt : text,
             timestamp: ts,
             tools,
             sources,
             modelSlug: msgModelSlug,
             modelName: modelName,
-            imageGen: imageGenPrompt // { prompt, size } or null
+            imageGen: imageGenPrompt,
+            toolCalls,       // NEW: Array of parsed tool calls
+            hasToolCall,     // NEW: Boolean flag
+            contentIsNull,   // NEW: Flag for null content with tool calls
+            imageUrls        // NEW: Array of image URLs
         });
     }
 

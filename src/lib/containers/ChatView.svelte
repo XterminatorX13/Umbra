@@ -37,6 +37,7 @@
   import ShineBorder from "../components/ui/ShineBorder.svelte";
   import SourcesPanel from "../components/features/SourcesPanel.svelte";
   import WikiHoverPreview from "../components/features/WikiHoverPreview.svelte";
+  import ToolCallBadge from "../components/ui/ToolCallBadge.svelte";
 
   export let conversation = null;
   export let meta = {};
@@ -589,6 +590,25 @@
               </div>
             {:else}
               {@html getCachedMarkdown(msg)}
+            {/if}
+
+            <!-- Tool Calls Display -->
+            {#if msg.hasToolCall && msg.toolCalls?.length > 0}
+              <ToolCallBadge toolCalls={msg.toolCalls} />
+            {/if}
+
+            <!-- Image URLs from DALL-E/multimodal -->
+            {#if msg.imageUrls?.length > 0}
+              <div class="image-gallery">
+                {#each msg.imageUrls as url}
+                  <img
+                    src={url}
+                    alt="Generated"
+                    class="generated-image"
+                    loading="lazy"
+                  />
+                {/each}
+              </div>
             {/if}
           </div>
         </div>
