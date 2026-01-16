@@ -91,8 +91,8 @@ export function normalizeConversation(conv) {
     const filterMeta = {
         hasImageGen: messages.some(m => m.imageGen !== null && m.imageGen !== undefined),
         hasWebSearch: messages.some(m => m.tools?.some(t => t.type === 'web_search' || t.type === 'web_results' || t.type === 'browser')),
-        hasCanvas: messages.some(m => m.tools?.some(t => t.type === 'canvas')),
-        hasCode: messages.some(m => m.tools?.some(t => t.type === 'code' || t.type === 'code_output')),
+        hasCanvas: messages.some(m => m.canvasContent || m.tools?.some(t => t.type === 'canvas')),
+        hasCode: messages.some(m => m.tools?.some(t => t.type === 'code' || t.type === 'code_output') || m.toolCalls?.some(tc => tc.name === 'python' || tc.name === 'code_interpreter')),
         hasSources: messages.some(m => m.sources?.length > 0),
         modelSlug: modelInfo.modelSlug,
         modelName: modelInfo.modelName,
