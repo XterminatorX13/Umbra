@@ -159,6 +159,31 @@
     renderMessagesAsync();
   }
 
+  // Action for Hybrid Auto-Scroll (Infinite History)
+  function viewport(element) {
+    if (!IntersectionObserver) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isRendering) {
+          loadMoreMessages();
+        }
+      },
+      {
+        root: chatContainer,
+        rootMargin: "200px", // Load before reaching the very top
+      },
+    );
+
+    observer.observe(element);
+
+    return {
+      destroy() {
+        observer.disconnect();
+      },
+    };
+  }
+
   $: hasMoreMessages =
     conversation?.messages && visibleCount < conversation.messages.length;
   $: remainingCount = conversation?.messages
@@ -522,6 +547,7 @@
       {#if hasMoreMessages}
         <div style="text-align: center; margin-bottom: 20px;">
           <button
+            use:viewport
             on:click={loadMoreMessages}
             style="padding: 10px 24px; font-size: 12px; border-radius: 999px; border: 1px solid var(--border-light); background: var(--layer-2); color: var(--color-text-primary); cursor: pointer; transition: all 0.3s;"
             class="load-more-btn"
