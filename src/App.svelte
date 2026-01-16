@@ -5,7 +5,12 @@
     import DebugPanel from "./lib/components/features/DebugPanel.svelte";
     import CommandPalette from "./lib/components/features/CommandPalette.svelte";
     import GlitchButton from "./lib/components/ui/GlitchButton.svelte";
-    import { normalizeConversation, getConvKey } from "./lib/utils/data.js";
+    import {
+        normalizeConversation,
+        getConvKey,
+        deduplicateConversations,
+    } from "./lib/utils/data.js";
+    import { addToast } from "./lib/stores/index.js";
     import {
         loadConversations,
         saveConversations,
@@ -102,18 +107,68 @@
                 } finally {
                     remaining--;
                     if (remaining === 0) {
-                        allConversations = [
-                            ...allConversations,
-                            ...newConversations,
-                        ];
-                        showWelcome = false;
-
-                        // Auto-save to IndexedDB
-                        saveConversations(
-                            allConversations.map((c) => c.raw || c),
-                        ).catch((e) =>
-                            console.warn("Could not save conversations:", e),
+                        // 🔍 Smart deduplication - only import new conversations
+                        const { unique, stats } = deduplicateConversations(
+                            allConversations,
+                            newConversations,
                         );
+
+                        if (unique.length > 0) {
+                            // Merge: replace updated + add new
+                            const existingKeys = new Set(
+                                unique.map((c) => getConvKey(c)),
+                            );
+                            const filtered = allConversations.filter(
+                                (c) => !existingKeys.has(getConvKey(c)),
+                            );
+                            allConversations = [...filtered, ...unique];
+                            showWelcome = false;
+
+                            // Auto-save to IndexedDB
+                            saveConversations(
+                                allConversations.map((c) => c.raw || c),
+                            ).catch((e) =>
+                                console.warn(
+                                    "Could not save conversations:",
+                                    e,
+                                ),
+                            );
+                        }
+
+                        // 📊 Show silent import stats toast
+                        const messages = [];
+                        if (stats.new > 0)
+                            messages.push(
+                                `${stats.new} nova${stats.new > 1 ? "s" : ""}`,
+                            );
+                        if (stats.updated > 0)
+                            messages.push(
+                                `${stats.updated} atualizada${stats.updated > 1 ? "s" : ""}`,
+                            );
+                        if (stats.duplicates > 0)
+                            messages.push(
+                                `${stats.duplicates} duplicada${stats.duplicates > 1 ? "s" : ""} ignorada${stats.duplicates > 1 ? "s" : ""}`,
+                            );
+
+                        if (messages.length > 0) {
+                            addToast({
+                                type:
+                                    stats.new > 0 || stats.updated > 0
+                                        ? "success"
+                                        : "info",
+                                message: `Importação: ${messages.join(", ")}`,
+                                duration: 4000,
+                            });
+                        } else if (
+                            stats.total > 0 &&
+                            stats.duplicates === stats.total
+                        ) {
+                            addToast({
+                                type: "info",
+                                message: `Todas as ${stats.total} conversas já existem`,
+                                duration: 3000,
+                            });
+                        }
                     }
                 }
             };

@@ -7,29 +7,16 @@ export default defineConfig({
   base: './', // Important for Electron to load assets with relative paths
 
   build: {
-    // Code Splitting Optimization
+    outDir: 'release/web',
     rollupOptions: {
       output: {
         manualChunks: {
-          // Markdown rendering libs
-          'markdown-renderer': ['marked', 'marked-highlight', 'marked-katex-extension'],
-          // Syntax highlighting (heavy)
-          'syntax-highlighter': ['highlight.js'],
-          // Math rendering (heavy)
+          'svelte-runtime': ['svelte', 'svelte/internal', 'svelte/store'],
+          'markdown': ['marked'],
           'math-renderer': ['katex'],
-          // Rich text editor (TipTap - heavy)
-          'rich-text-editor': [
-            '@tiptap/core',
-            '@tiptap/starter-kit',
-            '@tiptap/extension-placeholder',
-            '@tiptap/extension-bubble-menu'
-          ],
-          // Icons (Lucide)
+          'syntax-highlighter': ['highlight.js'],
           'icons': ['lucide-svelte'],
-          // Database
           'database': ['dexie'],
-          // Svelte runtime
-          'svelte-runtime': ['svelte', 'svelte/internal'],
         }
       }
     },

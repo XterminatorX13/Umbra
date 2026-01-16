@@ -49,9 +49,9 @@
             <Sparkles size={48} strokeWidth={1.5} />
         </div>
 
-        <TextGradient text="Dark Aurora" as="h2" />
-        <SparkBadge text="PKM Edition" className="mb-4" />
-        <p class="subtitle">Seu PKM pessoal para conversas do ChatGPT</p>
+        <TextGradient text="Aurora" as="h2" />
+        <SparkBadge text="v2.2 · Knowledge OS" className="mb-4" />
+        <p class="subtitle">Your Personal AI Knowledge Management System</p>
 
         <!-- Action Buttons -->
         <div class="action-btn-group">
@@ -62,7 +62,7 @@
                 className="w-full"
             >
                 <Upload size={18} />
-                Arrastar conversations.json aqui
+                Import Conversations
             </GlitchButton>
 
             <GlitchButton
@@ -72,7 +72,7 @@
                 className="w-full"
             >
                 <Star size={16} />
-                Ver Favoritos
+                Favorites
             </GlitchButton>
 
             <GlitchButton
@@ -82,7 +82,7 @@
                 className="w-full"
             >
                 <BarChart3 size={16} />
-                Estatísticas
+                Analytics
             </GlitchButton>
 
             <GlitchButton
@@ -92,14 +92,14 @@
                 className="w-full"
             >
                 <FolderOpen size={16} />
-                Ver Todas as Conversas
+                Browse All Conversations
             </GlitchButton>
         </div>
 
         <!-- Keyboard Hint -->
         <div class="kbd-hint">
             <Command size={12} />
-            <span>Pressione <kbd>Ctrl+K</kbd> para buscar</span>
+            <span>Press <kbd>Ctrl+K</kbd> to search</span>
         </div>
     </div>
 </div>

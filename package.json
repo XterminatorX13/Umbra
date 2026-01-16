@@ -1,22 +1,37 @@
 {
   "name": "aurora-chat-manager",
   "productName": "Aurora Chat Manager",
+  "version": "2.2.0",
+  "description": "Aurora Chat Manager — The intelligent knowledge management platform for AI conversations. Featuring folder organization, Maps of Content (MOC), smart filters, analytics, and multi-format export. Build your second brain with ChatGPT.",
+  "author": "AugustoMorais",
+  "license": "MIT",
   "private": true,
-  "version": "2.0.0",
-  "description": "Gerenciador de conversas e conhecimento para IA",
-  "author": "Your Name",
   "type": "module",
   "main": "electron/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/XterminatorX13/Aurora-Chat-Manager-"
+  },
+  "keywords": [
+    "aurora",
+    "chat-manager",
+    "ai",
+    "conversas",
+    "chatgpt",
+    "knowledge-management",
+    "svelte",
+    "electron"
+  ],
   "scripts": {
-    "dev": "vite",
-    "vite": "vite",
-    "electron": "electron",
-    "build": "vite build",
+    "dev": "vite dev",
+    "build:web": "vite build",
     "build:standalone": "vite build --config vite.config.standalone.js",
+    "build:windows": "npm run build:web && electron-builder --win",
+    "build:all": "npm run build:web && npm run build:standalone && npm run build:windows",
     "preview": "vite preview",
-    "electron:build": "vite build && electron-builder",
-    "electron:build:win": "vite build && electron-builder --win --x64",
-    "electron:build:portable": "vite build && electron-builder --win portable"
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "electron:dev": "concurrently \"vite dev\" \"wait-on http://localhost:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
+    "electron:build:win": "npm run build:windows"
   },
   "devDependencies": {
     "@electron-forge/maker-squirrel": "^7.10.2",
@@ -77,11 +92,11 @@
       "shortcutName": "Aurora Chat Manager"
     },
     "directories": {
-      "output": "release",
+      "output": "release/windows",
       "buildResources": "build"
     },
     "files": [
-      "dist/**/*",
+      "release/web/**/*",
       "electron/**/*",
       "package.json"
     ],

@@ -11,6 +11,7 @@ export default defineConfig({
   base: './',
   build: {
     target: 'es2020',
+    outDir: 'release/standalone',
     assetsInlineLimit: 100000000, // Force inline everything
     chunkSizeWarningLimit: 100000000,
     cssCodeSplit: false,

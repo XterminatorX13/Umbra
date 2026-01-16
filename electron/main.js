@@ -20,6 +20,7 @@ let mainWindow;
 
 const createWindow = () => {
     mainWindow = new BrowserWindow({
+        title: 'Aurora Chat Manager',
         width: 1200,
         height: 800,
         backgroundColor: '#020617',
@@ -44,7 +45,7 @@ const createWindow = () => {
         mainWindow.webContents.openDevTools();
     } else {
         // Production: Load the built file
-        mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+        mainWindow.loadFile(path.join(__dirname, '../release/web/index.html'));
     }
 };
 

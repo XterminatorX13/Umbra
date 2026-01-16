@@ -14,6 +14,7 @@
     import { fly, fade } from "svelte/transition";
     import { portal } from "../../actions/portal.js";
     import Calendar from "./Calendar.svelte";
+    import { getModelName } from "../../utils/data.js";
 
     export let conversations = [];
     export let filters = {
@@ -72,23 +73,6 @@
                 .filter((m) => m !== "unknown"),
         ),
     ].sort();
-
-    const modelNames = {
-        "gpt-5": "GPT-5",
-        "gpt-4o": "GPT-4o",
-        "gpt-4o-mini": "4o Mini",
-        o1: "o1",
-        "o1-mini": "o1 Mini",
-        o3: "o3",
-        "o4-mini": "o4 Mini",
-        research: "Deep Research",
-        "gpt-4": "GPT-4",
-        "gpt-4-turbo": "GPT-4 Turbo",
-    };
-
-    function getModelName(slug) {
-        return modelNames[slug] || slug;
-    }
 
     function toggleModel(model) {
         if (filters.models.includes(model)) {
