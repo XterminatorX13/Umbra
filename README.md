@@ -1,4 +1,4 @@
-# 🌌 ChatGPT PKM 2.0 — Dark Aurora
+# 🌌 Umbra — Dark Aurora
 
 **Sistema de Gerenciamento Pessoal de Conhecimento para conversas do ChatGPT**
 
