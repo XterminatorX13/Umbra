@@ -167,6 +167,8 @@
 <svelte:window on:click={handleWindowClick} />
 
 {#if isOpen}
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div
         class="filter-popover"
         bind:this={panelRef}
@@ -797,13 +799,6 @@
         color: #52525b;
     }
 
-    .icon-right {
-        color: #52525b;
-    }
-    .date-btn.has-value .icon-right {
-        color: #a78bfa;
-    }
-
     .popover-footer {
         padding: 16px 18px;
         background: rgba(0, 0, 0, 0.3);
@@ -863,10 +858,6 @@
     .calendar-fixed-wrapper {
         position: fixed;
         z-index: 10001;
-    }
-
-    .text-violet-400 {
-        color: #a78bfa;
     }
 
     .custom-scrollbar::-webkit-scrollbar {

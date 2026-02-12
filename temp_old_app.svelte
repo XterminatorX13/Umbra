@@ -1,16 +1,11 @@
 <script>
     import { onMount, onDestroy } from "svelte";
-    import Sidebar from "./lib/containers/Sidebar.svelte";
-    import ChatView from "./lib/containers/ChatView.svelte";
-    import DebugPanel from "./lib/components/features/DebugPanel.svelte";
-    import CommandPalette from "./lib/components/features/CommandPalette.svelte";
-    import GlitchButton from "./lib/components/ui/GlitchButton.svelte";
-    import {
-        normalizeConversation,
-        getConvKey,
-        deduplicateConversations,
-    } from "./lib/utils/data.js";
-    import { addToast } from "./lib/stores/index.js";
+    import Sidebar from "./lib/Sidebar.svelte";
+    import ChatView from "./lib/ChatView.svelte";
+    import DebugPanel from "./lib/components/DebugPanel.svelte";
+    import CommandPalette from "./lib/components/CommandPalette.svelte";
+    import GlitchButton from "./lib/components/GlitchButton.svelte";
+    import { normalizeConversation, getConvKey } from "./lib/utils.js";
     import {
         loadConversations,
         saveConversations,
@@ -18,9 +13,9 @@
         saveAllMetadata,
         migrateFromLocalStorage,
         getDbStats,
-    } from "./lib/services/database.js";
-    import Toast from "./lib/components/ui/Toast.svelte";
-    import { toasts } from "./lib/stores/index.js";
+    } from "./lib/db.js";
+    import Toast from "./lib/components/Toast.svelte";
+    import { toasts } from "./lib/stores.js";
 
     let allConversations = [];
     let metadata = {};
@@ -107,68 +102,18 @@
                 } finally {
                     remaining--;
                     if (remaining === 0) {
-                        // 🔍 Smart deduplication - only import new conversations
-                        const { unique, stats } = deduplicateConversations(
-                            allConversations,
-                            newConversations,
+                        allConversations = [
+                            ...allConversations,
+                            ...newConversations,
+                        ];
+                        showWelcome = false;
+
+                        // Auto-save to IndexedDB
+                        saveConversations(
+                            allConversations.map((c) => c.raw || c),
+                        ).catch((e) =>
+                            console.warn("Could not save conversations:", e),
                         );
-
-                        if (unique.length > 0) {
-                            // Merge: replace updated + add new
-                            const existingKeys = new Set(
-                                unique.map((c) => getConvKey(c)),
-                            );
-                            const filtered = allConversations.filter(
-                                (c) => !existingKeys.has(getConvKey(c)),
-                            );
-                            allConversations = [...filtered, ...unique];
-                            showWelcome = false;
-
-                            // Auto-save to IndexedDB
-                            saveConversations(
-                                allConversations.map((c) => c.raw || c),
-                            ).catch((e) =>
-                                console.warn(
-                                    "Could not save conversations:",
-                                    e,
-                                ),
-                            );
-                        }
-
-                        // 📊 Show silent import stats toast
-                        const messages = [];
-                        if (stats.new > 0)
-                            messages.push(
-                                `${stats.new} nova${stats.new > 1 ? "s" : ""}`,
-                            );
-                        if (stats.updated > 0)
-                            messages.push(
-                                `${stats.updated} atualizada${stats.updated > 1 ? "s" : ""}`,
-                            );
-                        if (stats.duplicates > 0)
-                            messages.push(
-                                `${stats.duplicates} duplicada${stats.duplicates > 1 ? "s" : ""} ignorada${stats.duplicates > 1 ? "s" : ""}`,
-                            );
-
-                        if (messages.length > 0) {
-                            addToast({
-                                type:
-                                    stats.new > 0 || stats.updated > 0
-                                        ? "success"
-                                        : "info",
-                                message: `Importação: ${messages.join(", ")}`,
-                                duration: 4000,
-                            });
-                        } else if (
-                            stats.total > 0 &&
-                            stats.duplicates === stats.total
-                        ) {
-                            addToast({
-                                type: "info",
-                                message: `Todas as ${stats.total} conversas já existem`,
-                                duration: 3000,
-                            });
-                        }
                     }
                 }
             };
@@ -434,10 +379,9 @@
     <div style="display: flex; flex-direction: column; overflow: hidden;">
         <!-- File input bar at top -->
         <div
-            class="app-drag-region"
-            style="background: var(--bg-panel); border-bottom: 1px solid var(--border); padding: 10px 16px; padding-right: 140px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;"
+            style="background: var(--bg-panel); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;"
         >
-            <label for="main-file-input" class="label-btn app-no-drag">
+            <label for="main-file-input" class="label-btn">
                 📁 Adicionar Arquivos
             </label>
             <input
@@ -455,7 +399,6 @@
                 on:click={exportAllMetadata}
                 size="sm"
                 variant="secondary"
-                className="app-no-drag"
             >
                 💾 Exportar
             </GlitchButton>
@@ -463,13 +406,12 @@
                 on:click={importMetadata}
                 size="sm"
                 variant="secondary"
-                className="app-no-drag"
             >
                 📥 Importar
             </GlitchButton>
             <GlitchButton
                 on:click={clearAllData}
-                className="danger app-no-drag"
+                className="danger"
                 size="sm"
                 variant="danger"
             >

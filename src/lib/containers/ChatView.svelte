@@ -29,6 +29,7 @@
     Circle,
     List,
     Image,
+    PanelRightClose,
   } from "lucide-svelte";
   import BorderBeam from "../components/ui/BorderBeam.svelte";
   import RichTextEditor from "../components/features/RichTextEditor.svelte";
@@ -427,7 +428,8 @@
     <!-- Header with Shine Border -->
     <ShineBorder duration={4} borderWidth={1}>
       <div
-        style="padding: 16px 20px; background: var(--bg-panel); display: flex; justify-content: space-between; align-items: center;"
+        class="app-drag-region"
+        style="padding: 16px 20px; padding-right: 220px; background: var(--bg-panel); display: flex; justify-content: space-between; align-items: center;"
       >
         <div style="flex: 1; min-width: 0;">
           <div
@@ -469,7 +471,10 @@
             {/if}
           </div>
         </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
+        <div
+          class="app-no-drag"
+          style="display: flex; gap: 8px; align-items: center;"
+        >
           <!-- Font size controls -->
           <button
             on:click={() => changeFontSize(-1)}
@@ -578,6 +583,8 @@
               <Bot size={16} />
             {/if}
           </div>
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
           <div
             class="msg-content prose-invert"
             style="font-size: {fontSize}px;"
@@ -774,8 +781,12 @@
           class="font-semibold text-xs text-slate-400 tracking-wide uppercase"
           >Inspector</span
         >
-        <button on:click={() => (showSidebar = false)} class="sidebar-close">
-          <X size={14} />
+        <button
+          on:click={() => (showSidebar = false)}
+          class="sidebar-close"
+          title="Fechar Inspector"
+        >
+          <PanelRightClose size={16} />
         </button>
       </div>
 
@@ -1588,7 +1599,8 @@
     animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     box-shadow:
       -10px 0 40px rgba(0, 0, 0, 0.5),
-      inset 1px 0 0 rgba(255, 255, 255, 0.05);
+      inset 1px 0 0 rgba(255, 255, 255, 0.05); /* Proper shadow */
+    padding-top: 36px; /* Space for frameless window controls */
   }
 
   @keyframes slideInRight {
@@ -1606,7 +1618,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 24px;
+    padding: 16px 24px; /* More compact */
+    padding-right: 24px; /* Normal padding */
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     font-weight: 600;
     color: var(--color-text-primary);
@@ -1621,6 +1634,7 @@
     color: var(--color-text-tertiary);
     cursor: pointer;
     transition: color 0.2s;
+    -webkit-app-region: no-drag;
   }
 
   .sidebar-close:hover {

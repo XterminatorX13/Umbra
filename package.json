@@ -1,7 +1,7 @@
 {
   "name": "aurora-chat-manager",
   "productName": "Aurora Chat Manager",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "description": "Aurora Chat Manager — The intelligent knowledge management platform for AI conversations. Featuring folder organization, Maps of Content (MOC), smart filters, analytics, and multi-format export. Build your second brain with ChatGPT.",
   "author": "AugustoMorais",
   "license": "MIT",

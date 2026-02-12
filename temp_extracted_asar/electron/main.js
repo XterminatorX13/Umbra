@@ -5,32 +5,14 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// GPU Acceleration flags for better performance
-app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
-app.commandLine.appendSwitch('enable-gpu-rasterization');
-app.commandLine.appendSwitch('enable-zero-copy');
-app.commandLine.appendSwitch('ignore-gpu-blocklist');
-
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-// if (require('electron-squirrel-startup')) {
-//     app.quit();
-// }
-
 let mainWindow;
+
 
 const createWindow = () => {
     mainWindow = new BrowserWindow({
-        title: 'Aurora Chat Manager',
         width: 1200,
         height: 800,
         backgroundColor: '#020617',
-        // Native-like frameless window (Obsidian style)
-        titleBarStyle: 'hidden',
-        titleBarOverlay: {
-            color: '#00000000', // Transparent background
-            symbolColor: '#9494A8', // Icon color (matches our text-secondary)
-            height: 32 // Standard height
-        },
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
@@ -51,8 +33,14 @@ const createWindow = () => {
         mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
         mainWindow.webContents.openDevTools();
     } else {
-        // Production: Load the built file
-        mainWindow.loadFile(path.join(__dirname, '../release/web/index.html'));
+        // In production, vite builds to dist/
+        // We are in electron/main.js. 
+        // If we run from root: electron . -> main is electron/main.js
+        // dist is at ./dist
+        // But usually electron-builder packages it differently.
+        // Let's assume standard vite build output.
+        // For dev now, we rely on localhost.
+        mainWindow.loadURL('http://localhost:5173');
     }
 };
 

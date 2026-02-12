@@ -1,0 +1,13 @@
+{
+  "name": "chatgpt-pkm",
+  "productName": "ChatGPT PKM 2.0",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Sistema de gerenciamento pessoal de conhecimento para ChatGPT",
+  "author": "Your Name",
+  "type": "module",
+  "main": "electron/main.js",
+  "dependencies": {
+    "marked": "^11.1.0"
+  }
+}

@@ -1,14 +1,10 @@
 <script>
     import { createEventDispatcher, onMount, onDestroy } from "svelte";
-    import { getConvKey } from "../utils/data.js";
-    import { addToast } from "../stores/index.js";
-    import CategoryDropdown from "../components/features/CategoryDropdown.svelte";
-    import InputModal from "../components/features/InputModal.svelte";
-    import FilterPanel from "../components/features/FilterPanel.svelte";
-    import BorderBeam from "../components/ui/BorderBeam.svelte";
-    import IconPicker from "../components/features/IconPicker.svelte";
-    import ColorPicker from "../components/features/ColorPicker.svelte";
-    import Fuse from "fuse.js";
+    import { getConvKey } from "./utils";
+    import CategoryDropdown from "./components/CategoryDropdown.svelte";
+    import InputModal from "./components/InputModal.svelte";
+    import FilterPanel from "./components/FilterPanel.svelte";
+    import BorderBeam from "./components/BorderBeam.svelte";
 
     export let conversations = [];
     export let metadata = {};
@@ -48,16 +44,6 @@
     let pendingFolderName = "";
     let pendingFolderIcon = "";
     let editingFolderName = "";
-
-    // Visual pickers state
-    let iconPickerOpen = false;
-    let colorPickerOpen = false;
-    let pendingIcon = "📁";
-    let pendingColor = "#7c3aed";
-
-    // References for Virtual List navigation
-    let catDropdownAll;
-    let catDropdownFav;
 
     // Folder metadata (icons & colors)
     const FOLDER_META_KEY = "pkm_folder_meta_v1";
@@ -108,26 +94,12 @@
     ]);
     $: folders = Array.from(foldersSet).sort();
 
-    // Fuse Instance for Fuzzy Search
-    let fuse;
-    $: if (conversations.length > 0) {
-        fuse = new Fuse(conversations, {
-            keys: ["title"],
-            threshold: 0.4, // 0.0 = perfect match, 1.0 = match anything
-            distance: 100,
-            shouldSort: true,
-        });
-    }
-
     // Advanced filter computed properties
     $: hasActiveAdvancedFilters =
         advancedFilters.models.length > 0 ||
         advancedFilters.hasImageGen ||
         advancedFilters.hasWebSearch ||
         advancedFilters.isDeepResearch ||
-        advancedFilters.isReasoning ||
-        advancedFilters.hasCanvas ||
-        advancedFilters.hasCode ||
         advancedFilters.dateFrom ||
         advancedFilters.dateTo;
 
@@ -136,9 +108,6 @@
         (advancedFilters.hasImageGen ? 1 : 0) +
         (advancedFilters.hasWebSearch ? 1 : 0) +
         (advancedFilters.isDeepResearch ? 1 : 0) +
-        (advancedFilters.isReasoning ? 1 : 0) +
-        (advancedFilters.hasCanvas ? 1 : 0) +
-        (advancedFilters.hasCode ? 1 : 0) +
         (advancedFilters.dateFrom || advancedFilters.dateTo ? 1 : 0);
 
     // Apply advanced filters to a conversation
@@ -155,7 +124,6 @@
         if (advancedFilters.hasImageGen && !fm.hasImageGen) return false;
         if (advancedFilters.hasWebSearch && !fm.hasWebSearch) return false;
         if (advancedFilters.isDeepResearch && !fm.isDeepResearch) return false;
-        if (advancedFilters.isReasoning && !fm.isReasoning) return false;
 
         // Date filters
         if (advancedFilters.dateFrom && fm.createDate) {
@@ -179,9 +147,6 @@
             hasImageGen,
             hasWebSearch,
             isDeepResearch,
-            isReasoning,
-            hasCanvas,
-            hasCode,
             dateFrom,
             dateTo,
         } = advancedFilters;
@@ -202,10 +167,6 @@
                     if (hasImageGen && !fm.hasImageGen) return false;
                     if (hasWebSearch && !fm.hasWebSearch) return false;
                     if (isDeepResearch && !fm.isDeepResearch) return false;
-
-                    if (isReasoning && !fm.isReasoning) return false;
-                    if (hasCanvas && !fm.hasCanvas) return false;
-                    if (hasCode && !fm.hasCode) return false;
                     if (dateFrom && fm.createDate && fm.createDate < dateFrom)
                         return false;
                     if (dateTo && fm.createDate) {
@@ -218,17 +179,6 @@
         }
 
         // Standard title-based filtering + advanced filters
-        let fuzzyMatches = null;
-        if (
-            activeFolder === "__ALL__" &&
-            searchTerm &&
-            searchMode === "title" &&
-            fuse
-        ) {
-            const results = fuse.search(searchTerm);
-            fuzzyMatches = new Set(results.map((r) => getConvKey(r.item)));
-        }
-
         return conversations.filter((c) => {
             const key = getConvKey(c);
             const meta = metadata[key] ?? {};
@@ -242,10 +192,6 @@
                 if (hasImageGen && !fm.hasImageGen) return false;
                 if (hasWebSearch && !fm.hasWebSearch) return false;
                 if (isDeepResearch && !fm.isDeepResearch) return false;
-
-                if (isReasoning && !fm.isReasoning) return false;
-                if (hasCanvas && !fm.hasCanvas) return false;
-                if (hasCode && !fm.hasCode) return false;
                 if (dateFrom && fm.createDate && fm.createDate < dateFrom)
                     return false;
                 if (dateTo && fm.createDate) {
@@ -257,10 +203,6 @@
 
             if (activeFolder === "__ALL__") {
                 if (searchTerm && searchMode === "title") {
-                    if (fuzzyMatches) {
-                        return fuzzyMatches.has(key);
-                    }
-                    // Fallback to simple includes search
                     const q = searchTerm.toLowerCase();
                     return (c.title || "").toLowerCase().includes(q);
                 }
@@ -370,10 +312,25 @@
         if (modalStep === "newFolderName") {
             if (!value) return;
             pendingFolderName = value;
-            modalOpen = false;
-            // Abrir IconPicker visual
-            pendingIcon = "📁";
-            iconPickerOpen = true;
+            modalStep = "newFolderIcon";
+            modalTitle = `Ícone para "${value}" (emoji)`;
+            modalDefault = "📁";
+            modalPlaceholder = "📁 ou outro emoji";
+            modalOpen = true;
+        } else if (modalStep === "newFolderIcon") {
+            pendingFolderIcon = value || "📁";
+            modalStep = "newFolderColor";
+            modalTitle = `Cor para "${pendingFolderName}"`;
+            modalDefault = randomFolderColor();
+            modalPlaceholder = "#hex ou nome";
+            modalOpen = true;
+        } else if (modalStep === "newFolderColor") {
+            const color = value || randomFolderColor();
+            folderMeta[pendingFolderName] = { icon: pendingFolderIcon, color };
+            folderMeta = { ...folderMeta };
+            saveFolderMeta();
+            pendingFolderName = "";
+            pendingFolderIcon = "";
         } else if (modalStep === "editIcon") {
             if (value !== null) {
                 folderMeta[editingFolderName] = {
@@ -396,26 +353,7 @@
                 saveFolderMeta();
             }
             editingFolderName = "";
-            modalOpen = false;
         }
-    }
-
-    function handleIconSelect(event) {
-        pendingFolderIcon = event.detail.icon;
-        pendingIcon = event.detail.icon;
-        // Abrir ColorPicker visual
-        pendingColor = randomFolderColor();
-        colorPickerOpen = true;
-    }
-
-    function handleColorSelect(event) {
-        const color = event.detail.color;
-        // Criar pasta com nome, ícone e cor selecionados
-        folderMeta[pendingFolderName] = { icon: pendingFolderIcon, color };
-        folderMeta = { ...folderMeta };
-        saveFolderMeta();
-        pendingFolderName = "";
-        pendingFolderIcon = "";
     }
 
     function editFolderSettings(name) {
@@ -431,85 +369,23 @@
     function deleteFolder(name) {
         if (
             !confirm(
-                `Deletar pasta "${name}"? As conversas não serão deletadas, apenas movidas para "Todos".`,
+                `Deletar pasta "${name}"? As conversas não serão deletadas.`,
             )
         )
             return;
 
         // Remove folder from all conversations
-        let movedCount = 0;
         conversations.forEach((c) => {
             const key = getConvKey(c);
             if (metadata[key]?.folder === name) {
                 delete metadata[key].folder;
-                movedCount++;
             }
         });
 
         delete folderMeta[name];
         folderMeta = { ...folderMeta };
         saveFolderMeta();
-        // Toast de confirmação
-        addToast(
-            `Pasta "${name}" excluída. ${movedCount} conversa(s) movida(s) para "Todos".`,
-            "success",
-        );
-    }
-
-    /* --- Context Menu Actions --- */
-    function handleContextAction(event) {
-        const { type, id, ...payload } = event.detail;
-
-        if (type === "favorite") {
-            // Don't mutate metadata prop - let App handle it
-            const currentFav = metadata[id]?.favorite || false;
-            dispatch("updateMeta", { id, favorite: !currentFav });
-        } else if (type === "delete") {
-            if (confirm("Excluir esta conversa?")) {
-                dispatch("delete", { id });
-            }
-        } else if (type === "move") {
-            const folder = payload.folder;
-            // Don't mutate metadata prop - let App handle it
-            dispatch("updateMeta", { id, folder });
-
-            addToast(
-                folder ? `Movido para "${folder}"` : "Removido da pasta",
-                "success",
-            );
-        }
-    }
-
-    /* --- Drag and Drop --- */
-    let dragOverFolder = null;
-
-    function handleDragOver(e, folderName) {
-        e.preventDefault();
-        dragOverFolder = folderName;
-        // console.log("DragOver:", folderName);
-    }
-
-    function handleDragLeave(e) {
-        dragOverFolder = null;
-    }
-
-    function handleDrop(e, folderName) {
-        e.preventDefault();
-        dragOverFolder = null;
-        const convId = e.dataTransfer.getData("text/plain");
-
-        if (convId) {
-            const currentFolder = metadata[convId]?.folder;
-            if (currentFolder !== folderName) {
-                handleContextAction({
-                    detail: {
-                        type: "move",
-                        id: convId,
-                        folder: folderName,
-                    },
-                });
-            }
-        }
+        dispatch("metadataChanged");
     }
 
     function toggleSection(section) {
@@ -539,17 +415,20 @@
     let scrollContainer;
 
     // Navigate to specific index
-    // Navigate to specific index
     function navigateToIndex(index) {
         if (index < 0 || index >= filtered.length) return;
         const key = getConvKey(filtered[index]);
         select(key);
 
-        // Delegate scrolling to the active CategoryDropdown with VirtualList
-        if (activeFolder === "__ALL__" && catDropdownAll) {
-            catDropdownAll.scrollToIndex(index);
-        } else if (activeFolder === "__FAV__" && catDropdownFav) {
-            catDropdownFav.scrollToIndex(index);
+        // Scroll into view
+        if (scrollContainer) {
+            const rows = scrollContainer.querySelectorAll(".conv-row");
+            if (rows[index]) {
+                rows[index].scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                });
+            }
         }
     }
 
@@ -607,29 +486,8 @@
 
 <aside
     class="glass"
-    style="border-right: 1px solid var(--border-light); display: flex; flex-direction: column; overflow: visible; position: relative; z-index: 1001;"
+    style="border-right: 1px solid var(--border-light); display: flex; flex-direction: column; overflow: hidden;"
 >
-    <!-- App Title / Drag Region (Electron) -->
-    <div
-        class="app-drag-region"
-        style="
-            height: 36px;
-            border-bottom: 1px solid var(--border);
-            display: flex; 
-            align-items: center; 
-            padding: 0 16px;
-            font-size: 12px;
-            color: var(--color-text-secondary);
-            background: rgba(255, 255, 255, 0.02);
-            font-weight: 600;
-            letter-spacing: 0.02em;
-        "
-    >
-        <span style="display:flex; gap:8px; align-items:center;">
-             <span>🌌</span> Aurora AI <span style="font-size: 10px; opacity: 0.5; font-weight: 400; margin-left: 2px;">PRO</span>
-        </span>
-    </div>
-
     <!-- Header -->
     <div
         style="padding: 16px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;"
@@ -804,7 +662,6 @@
                 <div style="padding-left: 10px;">
                     <!-- Todas -->
                     <CategoryDropdown
-                        bind:this={catDropdownAll}
                         title="Todas"
                         icon="📚"
                         conversations={searchTerm || hasActiveAdvancedFilters
@@ -819,14 +676,11 @@
                             ? getSnippetForConv
                             : null}
                         {searchTerm}
-                        {folders}
                         on:select
-                        on:action={handleContextAction}
                     />
 
                     <!-- Favoritos -->
                     <CategoryDropdown
-                        bind:this={catDropdownFav}
                         title="Favoritos"
                         icon="⭐"
                         conversations={hasActiveAdvancedFilters
@@ -842,9 +696,7 @@
                             ? getSnippetForConv
                             : null}
                         {searchTerm}
-                        {folders}
                         on:select
-                        on:action={handleContextAction}
                     />
 
                     <!-- PROJETOS (Folders) -->
@@ -909,41 +761,14 @@
                                                 !metadata[getConvKey(c)]
                                                     ?.deleted,
                                         )}
-                                        <!-- svelte-ignore a11y-no-static-element-interactions -->
-                                        <div
-                                            class="folder-row"
-                                            role="listitem"
-                                            class:drag-over={dragOverFolder ===
-                                                folderName}
-                                            on:dragover={(e) =>
-                                                handleDragOver(e, folderName)}
-                                            on:dragleave={handleDragLeave}
-                                            on:drop={(e) =>
-                                                handleDrop(e, folderName)}
-                                        >
-                                            <div
-                                                class="folder-dropdown-wrapper"
-                                            >
-                                                <CategoryDropdown
-                                                    title={folderName}
-                                                    icon={fm.icon}
-                                                    conversations={folderConvs}
-                                                    {metadata}
-                                                    {activeId}
-                                                    {folders}
-                                                    on:select
-                                                    on:action={handleContextAction}
-                                                />
-                                            </div>
-                                            <button
-                                                class="folder-trash-btn"
-                                                on:click|stopPropagation={() =>
-                                                    deleteFolder(folderName)}
-                                                title="Excluir pasta (conversas serão movidas para 'Todos')"
-                                            >
-                                                🗑️
-                                            </button>
-                                        </div>
+                                        <CategoryDropdown
+                                            title={folderName}
+                                            icon={fm.icon}
+                                            conversations={folderConvs}
+                                            {metadata}
+                                            {activeId}
+                                            on:select
+                                        />
                                     {/each}
                                 {/if}
                             </div>
@@ -987,20 +812,6 @@
     on:submit={handleModalSubmit}
 />
 
-<!-- Visual Icon Picker -->
-<IconPicker
-    bind:isOpen={iconPickerOpen}
-    selectedIcon={pendingIcon}
-    on:select={handleIconSelect}
-/>
-
-<!-- Visual Color Picker -->
-<ColorPicker
-    bind:isOpen={colorPickerOpen}
-    selectedColor={pendingColor}
-    on:select={handleColorSelect}
-/>
-
 <style>
     /* Projects List */
     .projects-list {
@@ -1008,52 +819,6 @@
         margin-left: 4px; /* Align with others */
         padding-left: 10px;
         border-left: 1px solid var(--border-light);
-    }
-
-    /* Folder Row Container */
-    .folder-row {
-        display: flex;
-        align-items: flex-start;
-        gap: 4px;
-        position: relative;
-        border-radius: var(--radius-small);
-        transition: background 0.2s;
-    }
-
-    .folder-row.drag-over {
-        background: rgba(157, 78, 221, 0.2);
-        box-shadow: 0 0 0 2px var(--highlight);
-    }
-
-    .folder-dropdown-wrapper {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .folder-trash-btn {
-        width: 28px;
-        height: 28px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 6px;
-        background: transparent;
-        border: 1px solid transparent;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.2s;
-        opacity: 0;
-        margin-top: 6px;
-    }
-
-    .folder-row:hover .folder-trash-btn {
-        opacity: 0.5;
-    }
-
-    .folder-trash-btn:hover {
-        opacity: 1 !important;
-        background: rgba(239, 68, 68, 0.15);
-        border-color: rgba(239, 68, 68, 0.3);
     }
 
     /* COPIED STYLES FROM CategoryDropdown for consistency */
