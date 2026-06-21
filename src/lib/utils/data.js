@@ -155,10 +155,14 @@ export function normalizeConversation(conv) {
         }
     }
 
-    // Logic: If default is "auto", use the last detected model from messages if available
-    if (computedModelSlug === 'auto' && lastMessageModel) {
+    // Logic: If default is "auto" or missing/unknown, use the last detected model from messages if available
+    if ((!computedModelSlug || computedModelSlug === 'auto' || computedModelSlug === 'unknown') && lastMessageModel) {
         computedModelSlug = lastMessageModel;
     }
+
+    // Update modelInfo with the final computed values
+    modelInfo.modelSlug = computedModelSlug;
+    modelInfo.modelName = getModelName(computedModelSlug);
 
     // Identify Reasoning based on generic "starts with o" rule (o1, o3, etc), thinking suffix, or specific flag
     const slug = computedModelSlug || '';
