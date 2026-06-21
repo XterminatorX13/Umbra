@@ -35,6 +35,9 @@
   import EmptyState from "$lib/components/base/EmptyState.svelte";
   import ShineBorder from "$lib/components/base/ShineBorder.svelte";
   import SourcesPanel from "$lib/components/filters/SourcesPanel.svelte";
+  import ToolCallBadge from "./ToolCallBadge.svelte";
+  import CanvasViewer from "./CanvasViewer.svelte";
+  import WikiHoverPreview from "./WikiHoverPreview.svelte";
 
   export let conversation = null;
   export let meta = {};
@@ -51,6 +54,12 @@
   let sourcesPanelOpen = false;
   let currentMessageSources = []; // Sources for the currently opened message
   let sourcesDropdownOpen = false; // For Inspector dropdown
+
+  let activeCanvas = null;
+  let hoverConcept = null;
+  let hoverX = 0;
+  let hoverY = 0;
+  let isHovering = false;
 
   // Extract safe_urls from conversation (Deep Research sources)
   $: safeUrls = conversation?.raw?.safe_urls || [];
@@ -113,6 +122,43 @@
   }
 
   // Async rendering with RAF - batched for better performance
+  // --- Wiki-Link Interaction ---
+  let hoverTimeout;
+
+  function handleMessageClick(e) {
+    const target = e.target.closest(".wiki-link");
+    if (target) {
+      e.preventDefault();
+      const concept = target.dataset.concept;
+      console.log("Wiki link clicked:", concept);
+      dispatch("wikiLinkClick", { concept });
+    }
+  }
+
+  function handleMessageMouseOver(e) {
+    const target = e.target.closest(".wiki-link");
+    if (target) {
+      const concept = target.dataset.concept;
+      const rect = target.getBoundingClientRect();
+
+      clearTimeout(hoverTimeout);
+      hoverTimeout = setTimeout(() => {
+        hoverConcept = concept;
+        hoverX = rect.left;
+        hoverY = rect.bottom; // Show below the link
+        isHovering = true;
+      }, 300); // 300ms delay for intent
+    }
+  }
+
+  function handleMessageMouseOut(e) {
+    const target = e.target.closest(".wiki-link");
+    if (target) {
+      clearTimeout(hoverTimeout);
+      isHovering = false;
+    }
+  }
+
   async function renderMessagesAsync() {
     if (!conversation?.messages) {
       renderedMessages = [];
@@ -383,6 +429,11 @@
       bind:this={chatContainer}
       style="flex: 1; overflow-y: auto; padding: 24px; background: radial-gradient(circle at top left, var(--bg-deep), var(--bg-main) 60%); font-size: {fontSize}px;"
     >
+      <!-- Wiki Hover Preview -->
+      {#if isHovering && hoverConcept}
+        <WikiHoverPreview concept={hoverConcept} x={hoverX} y={hoverY} />
+      {/if}
+
       <!-- Load More Button -->
       {#if hasMoreMessages}
         <div style="text-align: center; margin-bottom: 20px;">
@@ -417,9 +468,17 @@
               <Bot size={16} />
             {/if}
           </div>
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
           <div
             class="msg-content prose-invert"
             style="font-size: {fontSize}px;"
+            on:click={handleMessageClick}
+            on:mouseover={handleMessageMouseOver}
+            on:mouseout={handleMessageMouseOut}
+            on:focus={() => {}}
+            on:blur={() => {}}
+            role="article"
           >
             <!-- Model & Tool Badges (GPT-5, Deep Research, Python, etc) -->
             {#if msg.role === "assistant" && (msg.modelName || (msg.tools && msg.tools.length > 0))}
@@ -458,6 +517,31 @@
                   {/each}
                 {/if}
               </div>
+            {/if}
+
+            <!-- Tool Calls -->
+            {#if msg.toolCalls}
+              <ToolCallBadge toolCalls={msg.toolCalls} />
+            {/if}
+
+            <!-- Canvas -->
+            {#if msg.canvasContent}
+              <button
+                class="canvas-card"
+                on:click={() => (activeCanvas = msg.canvasContent)}
+              >
+                <div class="canvas-card-icon">
+                  <FileText size={20} />
+                </div>
+                <div class="canvas-card-info">
+                  <span class="canvas-card-name">{msg.canvasContent.name || 'Sem nome'}</span>
+                  <span class="canvas-card-type">
+                    {msg.canvasContent.type === "document"
+                      ? "Documento"
+                      : "Código"} • Clique para abrir
+                  </span>
+                </div>
+              </button>
             {/if}
 
             <!-- Image Generation Prompt Card -->
@@ -765,6 +849,22 @@
   on:close={() => (sourcesPanelOpen = false)}
 />
 
+<!-- Canvas Viewer Panel -->
+{#if activeCanvas}
+  <CanvasViewer
+    canvas={activeCanvas}
+    onClose={() => (activeCanvas = null)}
+  />
+{/if}
+
+<!-- Wiki-Link Transclusion Preview -->
+<WikiHoverPreview
+  concept={hoverConcept}
+  x={hoverX}
+  y={hoverY}
+  isOpen={isHovering}
+/>
+
 <style>
   @keyframes pulse {
     0%,
@@ -882,6 +982,76 @@
     overflow: hidden;
     margin-top: 4px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Canvas Card Styles */
+  .canvas-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 14px 18px;
+    background: linear-gradient(
+      135deg,
+      rgba(139, 92, 246, 0.1),
+      rgba(99, 102, 241, 0.08)
+    );
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    text-align: left;
+  }
+
+  .canvas-card:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(139, 92, 246, 0.2),
+      rgba(99, 102, 241, 0.15)
+    );
+    border-color: rgba(139, 92, 246, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.2);
+  }
+
+  .canvas-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(
+      135deg,
+      rgba(139, 92, 246, 0.3),
+      rgba(139, 92, 246, 0.15)
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a78bfa;
+    flex-shrink: 0;
+  }
+
+  .canvas-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .canvas-card-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e4e4e7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .canvas-card-type {
+    font-size: 11px;
+    color: #a78bfa;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .image-gen-header {
