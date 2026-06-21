@@ -1,6 +1,7 @@
 <script>
     import { createEventDispatcher } from "svelte";
     import { getConvKey } from "../utils.js";
+    import PlatformBadge from "./PlatformBadge.svelte";
 
     export let title = "";
     export let icon = "📁";
@@ -77,8 +78,9 @@
                     <div
                         style="font-size: 9px; color: {activeId === key
                             ? 'rgba(255,255,255,0.7)'
-                            : 'var(--color-text-secondary)'}; margin-top: 2px; display: flex; gap: 6px;"
+                            : 'var(--color-text-secondary)'}; margin-top: 2px; display: flex; align-items: center; gap: 6px;"
                     >
+                        <PlatformBadge platform={conv.platform || 'chatgpt'} size={10} showTooltip={false} />
                         <span>💬 {conv.messages.length}</span>
                         {#if meta.favorite}<span
                                 style="color: var(--highlight);">★</span

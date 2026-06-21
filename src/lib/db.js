@@ -8,10 +8,15 @@ import Dexie from 'dexie';
 export const db = new Dexie('ChatGPT_PKM');
 
 // Define schema
+// v1: original schema
 db.version(1).stores({
-    // Conversations table - stores full conversation data
     conversations: 'id, title, createTime, updateTime',
-    // Metadata table - stores user metadata (folders, favorites, tags, notes)
+    metadata: 'id, folder, favorite, *tags'
+});
+
+// v2: add platform field for multi-AI support
+db.version(2).stores({
+    conversations: 'id, title, createTime, updateTime, platform',
     metadata: 'id, folder, favorite, *tags'
 });
 
@@ -26,6 +31,7 @@ export async function saveConversations(conversations) {
             title: conv.title,
             createTime: conv.create_time || conv.createTime,
             updateTime: conv.update_time || conv.updateTime,
+            platform: conv.platform || 'chatgpt',
             data: conv.raw || conv // Store full conversation
         }));
         await db.conversations.bulkPut(toSave);
@@ -45,7 +51,14 @@ export async function loadConversations() {
     try {
         const rows = await db.conversations.toArray();
         console.log(`📂 Loaded ${rows.length} conversations from IndexedDB`);
-        return rows.map(row => row.data);
+        return rows.map(row => {
+            const data = row.data || {};
+            // Attach the persisted platform field back onto the data
+            if (row.platform && !data.platform) {
+                data.platform = row.platform;
+            }
+            return data;
+        });
     } catch (error) {
         console.error('Error loading conversations:', error);
         return [];

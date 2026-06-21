@@ -3,7 +3,10 @@
     import Sidebar from "./lib/Sidebar.svelte";
     import ChatView from "./lib/ChatView.svelte";
     import DebugPanel from "./lib/components/DebugPanel.svelte";
+    import ImportDialog from "./lib/components/ImportDialog.svelte";
+    import ExportGuide from "./lib/components/ExportGuide.svelte";
     import { normalizeConversation, getConvKey } from "./lib/utils.js";
+    import { parseFile } from "./lib/parsers/index.js";
     import {
         loadConversations,
         saveConversations,
@@ -19,6 +22,8 @@
     let activeFolder = "__ALL__";
     let folderMeta = {};
     let showWelcome = true;
+    let showImportDialog = false;
+    let showExportGuide = false;
 
     const FOLDER_META_KEY = "pkm_folder_meta_v1";
 
@@ -67,50 +72,39 @@
         );
     });
 
-    function handleFileInput(e) {
+    async function handleFileInput(e) {
         const files = Array.from(e.target.files || []);
         if (!files.length) return;
 
-        let remaining = files.length;
-        const newConversations = [];
+        for (const file of files) {
+            try {
+                const result = await parseFile(file);
+                const normalized = result.conversations.map(normalizeConversation);
+                allConversations = [...allConversations, ...normalized];
+            } catch (err) {
+                console.error(`Erro ao importar ${file.name}:`, err);
+                alert(`Erro ao importar ${file.name}: ${err.message}`);
+            }
+        }
 
-        files.forEach((file) => {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                try {
-                    const text = ev.target.result;
-                    const data = JSON.parse(text);
-                    const arr = Array.isArray(data)
-                        ? data
-                        : data.conversations || [];
+        if (allConversations.length > 0) {
+            showWelcome = false;
+            saveConversations(allConversations).catch((e) =>
+                console.warn("Could not save conversations:", e),
+            );
+        }
+    }
 
-                    arr.forEach((raw) => {
-                        const norm = normalizeConversation(raw);
-                        newConversations.push(norm);
-                    });
-                } catch (err) {
-                    console.error("Erro ao ler JSON:", err);
-                    alert("Erro ao ler JSON: " + err.message);
-                } finally {
-                    remaining--;
-                    if (remaining === 0) {
-                        allConversations = [
-                            ...allConversations,
-                            ...newConversations,
-                        ];
-                        showWelcome = false;
+    function handleImportFromDialog(event) {
+        const { conversations } = event.detail;
+        const normalized = conversations.map(normalizeConversation);
+        allConversations = [...allConversations, ...normalized];
+        showWelcome = false;
+        showImportDialog = false;
 
-                        // Auto-save to IndexedDB
-                        saveConversations(
-                            allConversations.map((c) => c.raw || c),
-                        ).catch((e) =>
-                            console.warn("Could not save conversations:", e),
-                        );
-                    }
-                }
-            };
-            reader.readAsText(file, "utf-8");
-        });
+        saveConversations(allConversations).catch((e) =>
+            console.warn("Could not save conversations:", e),
+        );
     }
 
     function handleSelect(event) {
@@ -278,33 +272,39 @@
                     ✨
                 </div>
                 <h1
-                    style="font-size: 32px; font-weight: 700; color: var(--highlight); margin-bottom: 16px; text-shadow: 0 0 30px rgba(217, 111, 255, 0.5);"
+                    style="font-size: 32px; font-weight: 700; color: var(--highlight); margin-bottom: 8px; text-shadow: 0 0 30px rgba(217, 111, 255, 0.5);"
                 >
-                    PKM ChatGPT 2.0
+                    Umbra
                 </h1>
                 <p
-                    style="font-size: 18px; color: var(--color-text-primary); margin-bottom: 32px; line-height: 1.6;"
+                    style="font-size: 14px; color: var(--color-text-secondary); margin-bottom: 24px; letter-spacing: 0.1em; text-transform: uppercase;"
                 >
-                    Sistema de gerenciamento pessoal de conhecimento para suas
-                    conversas do ChatGPT
+                    Personal Knowledge Manager
+                </p>
+                <p
+                    style="font-size: 16px; color: var(--color-text-primary); margin-bottom: 32px; line-height: 1.6;"
+                >
+                    Importe e organize suas conversas de
+                    <strong style="color: #10A37F;">ChatGPT</strong>,
+                    <strong style="color: #4285F4;">Gemini</strong>,
+                    <strong style="color: #D97757;">Claude</strong> e
+                    <strong style="color: #E8E8E8;">Grok</strong>
                 </p>
                 <div
-                    style="display: flex; flex-direction: column; gap: 16px; align-items: center;"
+                    style="display: flex; flex-direction: column; gap: 12px; align-items: center;"
                 >
-                    <label
-                        for="welcome-file-input"
-                        style="padding: 16px 32px; background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); color: #fff; font-size: 16px; font-weight: 600; border-radius: var(--radius); cursor: pointer; transition: all 0.3s; box-shadow: 0 8px 30px rgba(217, 111, 255, 0.4);"
+                    <button
+                        on:click={() => (showImportDialog = true)}
+                        style="padding: 16px 32px; background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); color: #fff; font-size: 16px; font-weight: 600; border-radius: var(--radius); cursor: pointer; transition: all 0.3s; box-shadow: 0 8px 30px rgba(217, 111, 255, 0.4); border: none;"
                     >
-                        📁 Carregar Conversas
-                    </label>
-                    <input
-                        id="welcome-file-input"
-                        type="file"
-                        on:change={handleFileInput}
-                        multiple
-                        accept=".json"
-                        style="display: none;"
-                    />
+                        📥 Importar Conversas
+                    </button>
+                    <button
+                        on:click={() => (showExportGuide = true)}
+                        style="padding: 10px 24px; background: transparent; border: 1px solid var(--border-light); color: var(--color-text-secondary); font-size: 13px; border-radius: var(--radius); cursor: pointer; transition: all 0.2s;"
+                    >
+                        📖 Como exportar minhas conversas?
+                    </button>
 
                     <div
                         style="font-size: 12px; color: var(--color-text-secondary); margin-top: 16px;"
@@ -362,20 +362,19 @@
         <div
             style="background: var(--bg-panel); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;"
         >
-            <label
-                for="main-file-input"
+            <button
+                on:click={() => (showImportDialog = true)}
                 style="padding: 6px 12px; font-size: 12px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-2); color: var(--color-text-primary); cursor: pointer; transition: all 0.2s;"
             >
-                📁 Adicionar Arquivos
-            </label>
-            <input
-                id="main-file-input"
-                type="file"
-                on:change={handleFileInput}
-                multiple
-                accept=".json"
-                style="display: none;"
-            />
+                📥 Importar Conversas
+            </button>
+            <button
+                on:click={() => (showExportGuide = true)}
+                title="Como exportar conversas"
+                style="padding: 6px 12px; font-size: 12px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-2); color: var(--color-text-secondary); cursor: pointer; transition: all 0.2s;"
+            >
+                📖 Guia
+            </button>
 
             <div style="flex: 1;"></div>
 
@@ -411,6 +410,10 @@
         />
     </div>
 </div>
+
+<!-- Dialogs -->
+<ImportDialog bind:show={showImportDialog} on:import={handleImportFromDialog} />
+<ExportGuide bind:show={showExportGuide} />
 
 <!-- Debug Panel (Ctrl+Shift+D to toggle) -->
 <DebugPanel />

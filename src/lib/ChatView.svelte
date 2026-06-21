@@ -2,6 +2,8 @@
   import { createEventDispatcher, onMount, onDestroy, tick } from "svelte";
   import { getConvKey } from "./utils";
   import { parseMarkdown } from "./utils/markdown.js";
+  import { PLATFORMS } from "./platforms.js";
+  import PlatformBadge from "./components/PlatformBadge.svelte";
   import "./styles/markdown.css";
 
   export let conversation = null;
@@ -258,8 +260,9 @@
     >
       <div style="flex: 1; min-width: 0;">
         <div
-          style="font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px;"
+          style="font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;"
         >
+          <PlatformBadge platform={conversation.platform || 'chatgpt'} size={16} showTooltip={true} />
           {conversation.title || "(Sem título)"}
         </div>
         <div
@@ -437,7 +440,7 @@
           >
             <span
               >{msg.role === "assistant"
-                ? "🤖 ChatGPT"
+                ? `🤖 ${PLATFORMS[conversation.platform || 'chatgpt']?.name || 'AI'}`
                 : msg.role === "user"
                   ? "👤 Você"
                   : msg.role}</span
