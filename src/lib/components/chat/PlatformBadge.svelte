@@ -1,5 +1,5 @@
 <script>
-  import { getPlatform } from '../platforms.js';
+  import { getPlatform } from "$lib/platforms.js";
   
   export let platform = 'chatgpt';
   export let size = 16;

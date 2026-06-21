@@ -1,6 +1,6 @@
 <script>
-  import { PLATFORMS } from '../platforms.js';
-  import PlatformBadge from './PlatformBadge.svelte';
+  import { PLATFORMS } from '$lib/platforms.js';
+  import PlatformBadge from "$lib/components/chat/PlatformBadge.svelte";
 
   export let show = false;
 

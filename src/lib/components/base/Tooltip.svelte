@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { cn } from "../cn";
+    import { cn } from "$lib/cn.ts";
 
     export let text: string = "";
     export let className: string = "";

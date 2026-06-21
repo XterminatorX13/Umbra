@@ -1,10 +1,12 @@
 <script>
     import { onMount, onDestroy } from "svelte";
-    import Sidebar from "./lib/Sidebar.svelte";
-    import ChatView from "./lib/ChatView.svelte";
-    import DebugPanel from "./lib/components/DebugPanel.svelte";
-    import ImportDialog from "./lib/components/ImportDialog.svelte";
-    import ExportGuide from "./lib/components/ExportGuide.svelte";
+    import Sidebar from "$lib/components/layout/Sidebar.svelte";
+    import ChatView from "$lib/components/chat/ChatView.svelte";
+    import DebugPanel from "$lib/components/base/DebugPanel.svelte";
+    import ImportDialog from "$lib/components/importer/ImportDialog.svelte";
+    import ExportGuide from "$lib/components/importer/ExportGuide.svelte";
+    import CommandPalette from "$lib/components/layout/CommandPalette.svelte";
+    import GlitchButton from "$lib/components/base/GlitchButton.svelte";
     import { normalizeConversation, getConvKey } from "./lib/utils.js";
     import { parseFile } from "./lib/parsers/index.js";
     import {
@@ -362,42 +364,46 @@
         <div
             style="background: var(--bg-panel); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;"
         >
-            <button
+            <GlitchButton
                 on:click={() => (showImportDialog = true)}
-                style="padding: 6px 12px; font-size: 12px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-2); color: var(--color-text-primary); cursor: pointer; transition: all 0.2s;"
+                size="sm"
             >
                 📥 Importar Conversas
-            </button>
-            <button
+            </GlitchButton>
+            <GlitchButton
                 on:click={() => (showExportGuide = true)}
                 title="Como exportar conversas"
-                style="padding: 6px 12px; font-size: 12px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-2); color: var(--color-text-secondary); cursor: pointer; transition: all 0.2s;"
+                size="sm"
+                variant="secondary"
             >
                 📖 Guia
-            </button>
+            </GlitchButton>
 
             <div style="flex: 1;"></div>
 
-            <button
+            <GlitchButton
                 on:click={exportAllMetadata}
                 title="Exportar metadata (Ctrl+E)"
-                style="padding: 6px 10px; font-size: 11px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-2); color: var(--color-text-secondary); cursor: pointer;"
+                size="sm"
+                variant="secondary"
             >
                 💾 Exportar Meta
-            </button>
-            <button
+            </GlitchButton>
+            <GlitchButton
                 on:click={importMetadata}
                 title="Importar metadata (Ctrl+I)"
-                style="padding: 6px 10px; font-size: 11px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-2); color: var(--color-text-secondary); cursor: pointer;"
+                size="sm"
+                variant="secondary"
             >
                 📥 Importar Meta
-            </button>
-            <button
+            </GlitchButton>
+            <GlitchButton
                 on:click={clearAllData}
-                style="padding: 6px 10px; font-size: 11px; border-radius: var(--radius-small); border: 1px solid var(--border-light); background: var(--layer-2); color: #ff6b6b; cursor: pointer;"
+                size="sm"
+                variant="danger"
             >
                 🗑️ Limpar Tudo
-            </button>
+            </GlitchButton>
         </div>
 
         <!-- ChatView takes remaining space -->
@@ -417,6 +423,18 @@
 
 <!-- Debug Panel (Ctrl+Shift+D to toggle) -->
 <DebugPanel />
+
+<!-- Command Palette (Ctrl+K) -->
+<CommandPalette
+    conversations={allConversations}
+    on:select={handleSelect}
+    on:action={(e) => {
+        const action = e.detail.action;
+        if (action === "favorites") activeFolder = "__FAV__";
+        else if (action === "all") activeFolder = "__ALL__";
+        else if (action === "stats") console.log("Open stats");
+    }}
+/>
 
 <style>
     /* ===== PERFORMANCE OPTIMIZATIONS ===== */

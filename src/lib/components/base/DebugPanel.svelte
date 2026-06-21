@@ -1,6 +1,6 @@
 <script>
     import { onMount, onDestroy } from "svelte";
-    import { perfMonitor } from "../utils/perfMonitor.js";
+    import { perfMonitor } from "$lib/utils/perfMonitor.js";
 
     export let visible = false;
 

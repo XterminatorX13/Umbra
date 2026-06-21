@@ -1,6 +1,6 @@
 <script>
   import { createEventDispatcher, onMount, onDestroy, tick } from "svelte";
-  import { getConvKey } from "./utils";
+  import { getConvKey } from "$lib/utils";
   import { parseMarkdown } from "./utils/markdown.js";
   import { PLATFORMS } from "./platforms.js";
   import PlatformBadge from "./components/PlatformBadge.svelte";

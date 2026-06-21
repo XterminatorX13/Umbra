@@ -3,6 +3,8 @@
  * Parses OpenAI's conversations.json export format (tree-based mapping structure)
  */
 
+import { normalizeConversation as advancedNormalize } from '../utils/data.js';
+
 const PLATFORM = 'chatgpt';
 
 /**
@@ -41,72 +43,9 @@ export function parse(data) {
     rawConversations = [data];
   }
   
-  return rawConversations.map(conv => normalizeConversation(conv));
-}
-
-function normalizeConversation(conv) {
-  const title = conv.title || '(Sem título)';
-  const createTime = conv.create_time || null;
-  const updateTime = conv.update_time || null;
-  const mapping = conv.mapping || {};
-  const messages = extractMessagesFromMapping(mapping, createTime);
-  const searchText = (title + ' ' + messages.map(m => m.textPlain).join(' ')).toLowerCase();
-  
-  const id = conv.id || conv.conversation_id || `chatgpt_${title}@@${createTime}`;
-  
-  return {
-    id,
-    platform: PLATFORM,
-    raw: conv,
-    title,
-    createTime,
-    updateTime,
-    messages,
-    searchText,
-  };
-}
-
-function extractMessagesFromMapping(mapping, fallbackTime) {
-  const msgs = [];
-  for (const key in mapping) {
-    const node = mapping[key];
-    if (!node || !node.message) continue;
-
-    const msg = node.message;
-    const author = msg.author || {};
-    const role = author.role || 'unknown';
-
-    if (role === 'tool') continue;
-    if (msg.metadata && msg.metadata.is_visually_hidden_from_conversation) continue;
-
-    const contentObj = msg.content || {};
-    const ctype = contentObj.content_type;
-
-    if (ctype && String(ctype).startsWith('tether_')) continue;
-
-    let text = '';
-
-    if (ctype === 'text' && Array.isArray(contentObj.parts)) {
-      text = contentObj.parts.join('\n\n');
-    } else if (ctype === 'user_editable_context') {
-      continue;
-    } else {
-      continue;
-    }
-
-    if (!text.trim()) continue;
-
-    const ts = msg.create_time != null ? msg.create_time : (fallbackTime || 0);
-
-    msgs.push({
-      id: msg.id || key,
-      role,
-      textMarkdown: text,
-      textPlain: text,
-      timestamp: ts,
-    });
-  }
-
-  msgs.sort((a, b) => a.timestamp - b.timestamp);
-  return msgs;
+  return rawConversations.map(conv => {
+      const normalized = advancedNormalize(conv);
+      normalized.platform = PLATFORM;
+      return normalized;
+  });
 }

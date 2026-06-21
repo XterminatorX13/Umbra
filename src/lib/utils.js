@@ -6,11 +6,14 @@
  * - Legacy ChatGPT format (raw mapping) is normalized for backwards compatibility
  */
 
+import { normalizeConversation as chatgptNormalize } from './utils/data.js';
+
 export function normalizeConversation(conv) {
     // If the conversation already came from a parser (has platform + messages),
     // just ensure it has searchText and return it
     if (conv.platform && Array.isArray(conv.messages) && conv.messages.length > 0) {
         return {
+            ...conv,
             id: conv.id || getConvKey(conv),
             platform: conv.platform,
             raw: conv.raw || conv,
@@ -23,25 +26,9 @@ export function normalizeConversation(conv) {
     }
 
     // Legacy path: raw ChatGPT format with mapping
-    const title = conv.title || '(Sem título)';
-    const createTime = conv.create_time || null;
-    const updateTime = conv.update_time || null;
-    const mapping = conv.mapping || {};
-    const messages = extractMessagesFromMapping(mapping, createTime);
-    const searchText = buildSearchText(title, messages);
-
-    const id = getConvKey({ raw: conv, title, createTime });
-
-    return {
-        id,
-        platform: conv.platform || 'chatgpt',
-        raw: conv,
-        title,
-        createTime,
-        updateTime,
-        messages,
-        searchText
-    };
+    const normalized = chatgptNormalize(conv);
+    normalized.platform = 'chatgpt';
+    return normalized;
 }
 
 export function getConvKey(conv) {
@@ -67,47 +54,8 @@ function buildSearchText(title, messages) {
     ).toLowerCase();
 }
 
-function extractMessagesFromMapping(mapping, fallbackTime) {
-    const msgs = [];
-    for (const key in mapping) {
-        const node = mapping[key];
-        if (!node || !node.message) continue;
-
-        const msg = node.message;
-        const author = msg.author || {};
-        const role = author.role || 'unknown';
-
-        if (role === 'tool') continue;
-        if (msg.metadata && msg.metadata.is_visually_hidden_from_conversation) continue;
-
-        const contentObj = msg.content || {};
-        const ctype = contentObj.content_type;
-
-        if (ctype && String(ctype).startsWith('tether_')) continue;
-
-        let text = '';
-
-        if (ctype === 'text' && Array.isArray(contentObj.parts)) {
-            text = contentObj.parts.join('\n\n');
-        } else if (ctype === 'user_editable_context') {
-            continue;
-        } else {
-            continue;
-        }
-
-        if (!text.trim()) continue;
-
-        const ts = msg.create_time != null ? msg.create_time : (fallbackTime || 0);
-
-        msgs.push({
-            id: msg.id || key,
-            role,
-            textMarkdown: text,
-            textPlain: text,
-            timestamp: ts
-        });
-    }
-
-    msgs.sort((a, b) => a.timestamp - b.timestamp);
-    return msgs;
+export function formatDate(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp * (timestamp < 100000000000 ? 1000 : 1));
+    return date.toLocaleDateString('pt-BR');
 }

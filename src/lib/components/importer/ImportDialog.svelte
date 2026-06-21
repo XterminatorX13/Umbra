@@ -1,8 +1,8 @@
 <script>
   import { createEventDispatcher } from 'svelte';
-  import { parseFiles } from '../parsers/index.js';
-  import { PLATFORMS } from '../platforms.js';
-  import PlatformBadge from './PlatformBadge.svelte';
+  import { parseFiles } from '$lib/parsers/index.js';
+  import { PLATFORMS } from '$lib/platforms.js';
+  import PlatformBadge from "$lib/components/chat/PlatformBadge.svelte";
 
   export let show = false;
 
