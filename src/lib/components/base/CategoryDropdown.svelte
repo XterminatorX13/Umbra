@@ -91,6 +91,33 @@
                         {#if meta.folder}<span>📁 {meta.folder}</span>{/if}
                     </div>
 
+                    <!-- Tags / Badges -->
+                    {#if conv.filterMeta}
+                        <div class="conv-tags">
+                            {#if conv.filterMeta.modelName}
+                                <span class="tag tag-model">{conv.filterMeta.modelName}</span>
+                            {/if}
+                            {#if conv.filterMeta.reasoningTime}
+                                <span class="tag tag-reasoning">🧠 Pensou {conv.filterMeta.reasoningTime}s</span>
+                            {/if}
+                            {#if conv.filterMeta.hasCanvas}
+                                <span class="tag tag-canvas">📝 Canvas</span>
+                            {/if}
+                            {#if conv.filterMeta.hasCode}
+                                <span class="tag tag-code">💻 Code</span>
+                            {/if}
+                            {#if conv.filterMeta.isDeepResearch}
+                                <span class="tag tag-research">🔍 Research</span>
+                            {/if}
+                            {#if conv.filterMeta.hasImageGen}
+                                <span class="tag tag-image">🖼️ Imagem</span>
+                            {/if}
+                            {#if conv.filterMeta.hasWebSearch}
+                                <span class="tag tag-web">🌐 Web</span>
+                            {/if}
+                        </div>
+                    {/if}
+
                     {#if getSnippet}
                         {@const snippet = getSnippet(key)}
                         {#if snippet}
@@ -308,5 +335,56 @@
         border-radius: var(--radius-small);
         margin-left: 12px;
         margin-top: 4px;
+    }
+
+    .conv-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 6px;
+    }
+
+    .tag {
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+    }
+
+    .tag-model {
+        background: rgba(255, 255, 255, 0.1);
+        color: #e4e4e7;
+    }
+
+    .tag-reasoning {
+        background: rgba(168, 85, 247, 0.15);
+        color: #d8b4fe;
+        border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+
+    .tag-canvas {
+        background: rgba(59, 130, 246, 0.15);
+        color: #93c5fd;
+    }
+
+    .tag-code {
+        background: rgba(249, 115, 22, 0.15);
+        color: #fdba74;
+    }
+
+    .tag-research {
+        background: rgba(16, 185, 129, 0.15);
+        color: #6ee7b7;
+    }
+
+    .tag-image {
+        background: rgba(236, 72, 153, 0.15);
+        color: #f9a8d4;
+    }
+
+    .tag-web {
+        background: rgba(14, 165, 233, 0.15);
+        color: #7dd3fc;
     }
 </style>
