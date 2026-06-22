@@ -1,6 +1,6 @@
 <script>
     import { createEventDispatcher, onMount, onDestroy } from "svelte";
-    import { getConvKey } from "./utils";
+    import { getConvKey } from "$lib/utils";
     import CategoryDropdown from "./components/CategoryDropdown.svelte";
 
     export let conversations = [];
