@@ -8,6 +8,10 @@
 
 import { normalizeConversation as chatgptNormalize } from './utils/data.js';
 
+// Re-export do utilitário cn (clsx + tailwind-merge), usado pelos
+// componentes shadcn-svelte em src/lib/components/ui/.
+export { cn } from './cn.ts';
+
 export function normalizeConversation(conv) {
     // If the conversation already came from a parser (has platform + messages),
     // just ensure it has searchText and return it

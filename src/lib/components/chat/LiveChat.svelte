@@ -3,15 +3,14 @@
   import { Bot, User, Send, Square, Settings, Sparkles } from "lucide-svelte";
   import { parseMarkdown } from "$lib/utils/markdown.js";
   import { uiRegistry } from "$lib/ai/componentRegistry.js";
-  import { getModelById } from "$lib/ai/models.js"; // Only for fallback description
   import {
     messages,
     isStreaming,
     currentModel,
+    catalog,
     error,
     streamingText,
     aiSettings,
-    availableModels,
     initChatListeners,
     sendMessage,
     abortStream,
@@ -22,6 +21,7 @@
   } from "$lib/ai/chatStore.js";
   import StreamingBubble from "./StreamingBubble.svelte";
   import ToolCallBadge from "./ToolCallBadge.svelte";
+  import ModelPicker from "./ModelPicker.svelte";
 
   let inputText = "";
   let chatContainer;
@@ -31,9 +31,6 @@
   // Settings state for the form
   let inputApiKey = "";
   let inputBaseUrl = "";
-  let useCustomModel = false;
-  let customModelInput = "";
-  let isModelDropdownOpen = false;
 
   // ── Lifecycle ──
   onMount(() => {
@@ -82,13 +79,6 @@
   $: if (showSettings) {
     inputApiKey = ""; // Never show the actual key
     inputBaseUrl = $aiSettings.baseURL;
-    
-    // Check if current model is custom
-    const foundModel = $availableModels.find(m => m.id === $currentModel);
-    useCustomModel = !foundModel && $currentModel && $availableModels.length > 0;
-    if (useCustomModel) {
-      customModelInput = $currentModel;
-    }
   }
 
   // ── API key / settings save ──
@@ -98,16 +88,19 @@
       newSettings.apiKey = inputApiKey.trim();
     }
     
-    if (useCustomModel && customModelInput.trim()) {
-      $currentModel = customModelInput.trim();
-    }
-    
     await saveAISettings(newSettings);
     inputApiKey = "";
     showSettings = false;
   }
 
-  $: selectedModel = $availableModels.find(m => m.id === $currentModel) || { id: $currentModel, name: $currentModel || 'Modelo Customizado', tier: 'custom' };
+  // Modelo selecionado: spec atual + metadata do catálogo
+  $: selectedModel = (() => {
+    const spec = $currentModel;
+    if (!spec) return null;
+    const models = $catalog.providers?.[spec.providerId] || [];
+    const meta = models.find((m) => m.id === spec.modelId);
+    return meta ? { ...meta, providerId: spec.providerId } : { id: spec.modelId, name: spec.modelId, providerId: spec.providerId };
+  })();
 </script>
 
 <div class="live-chat">
@@ -248,70 +241,11 @@
         </p>
       </div>
 
-      <div class="live-chat__settings-field">
-        <label for="model-select">Modelo</label>
-        
-        {#if !useCustomModel}
-          <!-- Custom Glass Dropdown -->
-          <div class="live-chat__custom-dropdown" tabindex="0" role="combobox" aria-expanded={isModelDropdownOpen} aria-controls="model-list" on:blur={() => setTimeout(() => isModelDropdownOpen = false, 200)}>
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="live-chat__dropdown-selected" on:click={() => isModelDropdownOpen = !isModelDropdownOpen}>
-              <span>{selectedModel?.name || 'Selecione um modelo'}</span>
-              <span class="chevron" class:rotated={isModelDropdownOpen}>▼</span>
-            </div>
-            
-            {#if isModelDropdownOpen}
-              <div class="live-chat__dropdown-list">
-                {#each $availableModels as model}
-                  <button 
-                    class="live-chat__dropdown-item" 
-                    class:active={$currentModel === model.id}
-                    on:click={() => {
-                      $currentModel = model.id;
-                      isModelDropdownOpen = false;
-                    }}
-                  >
-                    {model.name || model.id}
-                  </button>
-                {/each}
-                <div class="live-chat__dropdown-divider"></div>
-                <button 
-                  class="live-chat__dropdown-item live-chat__dropdown-item--custom"
-                  on:click={() => {
-                    useCustomModel = true;
-                    $currentModel = customModelInput;
-                    isModelDropdownOpen = false;
-                  }}
-                >
-                  ✦ Inserir Modelo Customizado...
-                </button>
-              </div>
-            {/if}
-          </div>
-        {:else}
-          <div style="display: flex; gap: 8px;">
-            <input
-              type="text"
-              bind:value={customModelInput}
-              placeholder="Ex: meta-llama/llama-3-8b-instruct"
-              class="live-chat__input-field"
-              style="flex: 1;"
-            />
-            <button class="live-chat__icon-btn" on:click={() => { useCustomModel = false; $currentModel = $availableModels[0]?.id || ''; }} title="Voltar à lista">
-              ✕
-            </button>
-          </div>
-        {/if}
+      <p class="live-chat__settings-hint">
+        Para gerenciar chaves de múltiplos providers (OpenAI, Anthropic, Google, Ollama, OmniRoute),
+        use Configurações na barra lateral. O modelo é escolhido no seletor ao lado do campo de mensagem.
+      </p>
 
-        {#if selectedModel && !useCustomModel && selectedModel.description}
-          <p class="live-chat__settings-hint">
-            {selectedModel.description}
-            {selectedModel.supportsTools === false ? " ⚠ Sem suporte a ferramentas." : ""}
-          </p>
-        {/if}
-      </div>
-      
       <button class="live-chat__save-key" on:click={saveSettings} style="margin-top: 8px;">
         Salvar Configurações
       </button>
@@ -321,6 +255,8 @@
   <!-- Input bar -->
   <div class="live-chat__inputbar">
     <div class="live-chat__inputbar-inner">
+      <ModelPicker />
+
       <button
         class="live-chat__icon-btn"
         on:click={() => (showSettings = !showSettings)}
@@ -365,9 +301,13 @@
     {#if selectedModel}
       <div class="live-chat__model-tag">
         {selectedModel.name}
-        {#if selectedModel.tier === "free"}
+        {#if selectedModel.free === true}
           <span class="live-chat__free-badge">FREE</span>
         {/if}
+      </div>
+    {:else}
+      <div class="live-chat__model-tag live-chat__model-tag--warn">
+        Nenhum modelo selecionado
       </div>
     {/if}
   </div>
@@ -615,98 +555,6 @@
     box-shadow: 0 0 0 1px rgba(157, 78, 221, 0.2);
   }
 
-  /* Custom Glass Dropdown */
-  .live-chat__custom-dropdown {
-    position: relative;
-    width: 100%;
-    outline: none;
-  }
-  
-  .live-chat__dropdown-selected {
-    font-size: 12px;
-    font-family: var(--font-primary);
-    color: var(--color-text-primary);
-    background: rgba(10, 10, 15, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: var(--radius-small);
-    padding: var(--space-2) var(--space-3);
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: all 0.2s ease;
-  }
-  
-  .live-chat__custom-dropdown:focus .live-chat__dropdown-selected,
-  .live-chat__dropdown-selected:hover {
-    border-color: rgba(157, 78, 221, 0.5);
-    background: rgba(157, 78, 221, 0.05);
-  }
-  
-  .live-chat__dropdown-selected .chevron {
-    font-size: 8px;
-    color: var(--color-text-tertiary);
-    transition: transform 0.2s ease;
-  }
-  
-  .live-chat__dropdown-selected .chevron.rotated {
-    transform: rotate(180deg);
-  }
-  
-  .live-chat__dropdown-list {
-    position: absolute;
-    bottom: calc(100% + 4px);
-    left: 0;
-    width: 100%;
-    max-height: 200px;
-    overflow-y: auto;
-    background: rgba(25, 25, 32, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: var(--radius-small);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    display: flex;
-    flex-direction: column;
-    padding: var(--space-1) 0;
-    z-index: 20;
-    animation: dropdownIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  
-  @keyframes dropdownIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  .live-chat__dropdown-item {
-    font-size: 12px;
-    font-family: var(--font-primary);
-    color: var(--color-text-secondary);
-    background: transparent;
-    border: none;
-    padding: var(--space-2) var(--space-3);
-    text-align: left;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-  
-  .live-chat__dropdown-item:hover,
-  .live-chat__dropdown-item.active {
-    background: rgba(157, 78, 221, 0.15);
-    color: var(--color-text-primary);
-  }
-  
-  .live-chat__dropdown-item--custom {
-    color: var(--highlight);
-    font-style: italic;
-  }
-  
-  .live-chat__dropdown-divider {
-    height: 1px;
-    background: rgba(255, 255, 255, 0.05);
-    margin: var(--space-1) 0;
-  }
-
   .live-chat__save-key {
     align-self: flex-start;
     font-size: 11px;
@@ -847,6 +695,11 @@
     padding: 1px 4px;
     border-radius: 3px;
     letter-spacing: 0.05em;
+  }
+
+  .live-chat__model-tag--warn {
+    color: var(--color-warning, #fbbf24);
+    font-style: italic;
   }
 
   @media (prefers-reduced-motion: reduce) {
