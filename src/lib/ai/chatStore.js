@@ -22,22 +22,25 @@ export const liveChatId = writable(null);
 /** @type {import('svelte/store').Writable<boolean>} */
 export const isStreaming = writable(false);
 
-/** @type {import('svelte/store').Writable<string>} */
-export const currentModel = writable(
-  localStorage.getItem('ai-model') || 'google/gemini-2.5-flash'
-);
-
 /** @type {import('svelte/store').Writable<{type: string, message: string} | null>} */
 export const error = writable(null);
 
 /** @type {import('svelte/store').Writable<string>} */
 export const streamingText = writable('');
 
-/** @type {import('svelte/store').Writable<{hasKey: boolean, baseURL: string}>} */
+/** @type {import('svelte/store').Writable<{hasKey: boolean, baseURL: string, providers?: Object, defaultModel?: Object}>} */
 export const aiSettings = writable({ hasKey: false, baseURL: 'https://openrouter.ai/api/v1' });
 
 /** @type {import('svelte/store').Writable<Array<Object>>} */
 export const availableModels = writable([]);
+
+// ── Multi-provider (v2): catálogo + providers ──
+
+/** @type {import('svelte/store').Writable<{providers: Object, source: string|null, updatedAt: number|null}>} */
+export const catalog = writable({ providers: {}, source: null, updatedAt: null });
+
+/** @type {import('svelte/store').Writable<Object|null>} */
+export const providerSettingsView = writable(null);
 
 // ─────────────────────────────────────────────────────────
 // Derived stores
@@ -47,19 +50,47 @@ export const availableModels = writable([]);
 export const hasMessages = derived(messages, $m => $m.length > 0);
 
 /** The last assistant message (for context display) */
-export const lastAssistantMessage = derived(messages, $m => 
+export const lastAssistantMessage = derived(messages, $m =>
   [...$m].reverse().find(m => m.role === 'assistant') || null
 );
 
 // ─────────────────────────────────────────────────────────
-// Persist model preference
+// Model spec (v2) — {providerId, modelId}
 // ─────────────────────────────────────────────────────────
 
-currentModel.subscribe(model => {
-  if (model) {
-    localStorage.setItem('ai-model', model);
+/**
+ * Modelo selecionado. Spec v2 {providerId, modelId}; migramos do
+ * formato legado (string "vendor/model" do OpenRouter).
+ * @type {import('svelte/store').Writable<{providerId: string, modelId: string}|null>}
+ */
+export const currentModel = writable(loadModelSpec());
+
+function loadModelSpec() {
+  try {
+    const raw = localStorage.getItem('ai-model-spec');
+    if (raw) {
+      const spec = JSON.parse(raw);
+      if (spec?.providerId && spec?.modelId) return spec;
+    }
+  } catch { /* ignora */ }
+  // Legado: string solta tratada como modelo do OpenRouter
+  const legacy = localStorage.getItem('ai-model');
+  if (legacy) return { providerId: 'openrouter', modelId: legacy };
+  return null;
+}
+
+/**
+ * Seleciona o modelo (persiste local + default no main).
+ * @param {{providerId: string, modelId: string}} spec
+ */
+export function setModel(spec) {
+  if (!spec?.providerId || !spec?.modelId) return;
+  currentModel.set(spec);
+  localStorage.setItem('ai-model-spec', JSON.stringify(spec));
+  if (typeof window !== 'undefined' && window.electronAPI?.setDefaultModel) {
+    window.electronAPI.setDefaultModel(spec).catch(() => {});
   }
-});
+}
 
 // ─────────────────────────────────────────────────────────
 // Actions
@@ -165,6 +196,13 @@ export async function sendMessage(text) {
   if (get(isStreaming)) return;
 
   const model = get(currentModel);
+  if (!model?.providerId || !model?.modelId) {
+    error.set({
+      type: 'no_model',
+      message: 'Selecione um modelo no seletor (☰ ao lado do campo de mensagem).',
+    });
+    return;
+  }
   
   // Add user message
   messages.update(msgs => [
@@ -285,7 +323,50 @@ export async function loadAISettings() {
     const settings = await window.electronAPI.getSettings();
     aiSettings.set(settings);
     await loadModels();
+    await loadProviderSettings();
+    await loadCatalog();
   }
+}
+
+/**
+ * Catálogo multi-provider (models.dev + Ollama/OmniRoute locais).
+ */
+export async function loadCatalog() {
+  if (typeof window !== 'undefined' && window.electronAPI?.getCatalog) {
+    try {
+      catalog.set(await window.electronAPI.getCatalog());
+    } catch (err) {
+      console.error('[Chat Store] Failed to load catalog:', err);
+    }
+  }
+}
+
+/**
+ * View pública dos providers (sem chaves) para a UI de configuração.
+ */
+export async function loadProviderSettings() {
+  if (typeof window !== 'undefined' && window.electronAPI?.getProviderSettings) {
+    try {
+      providerSettingsView.set(await window.electronAPI.getProviderSettings());
+    } catch (err) {
+      console.error('[Chat Store] Failed to load provider settings:', err);
+    }
+  }
+}
+
+/**
+ * Salva settings de um provider (ex.: {providers: {anthropic: {apiKey: 'sk-'}}}) —
+ * chaves ficam no main, nunca no renderer.
+ */
+export async function saveProviderSettings(patch) {
+  if (typeof window !== 'undefined' && window.electronAPI?.saveProviderSettings) {
+    const view = await window.electronAPI.saveProviderSettings(patch);
+    providerSettingsView.set(view);
+    // Ollama/OmniRoute configurados mudam o catálogo
+    await loadCatalog();
+    return view;
+  }
+  return null;
 }
 
 /**

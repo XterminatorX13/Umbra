@@ -1,9 +1,21 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import {
+    streamChat,
+    abortStream,
+    loadAISettings,
+    saveAISettings,
+    fetchAvailableModels,
+    getSettingsView,
+    saveProviderSettings,
+    setDefaultModel,
+    providerPublicView,
+    getCatalog,
+} from './ai-bridge.js';
 
 // GPU Acceleration flags for better performance
 app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
@@ -50,15 +62,13 @@ const createWindow = () => {
     if (process.env.VITE_DEV_SERVER_URL) {
         mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
         mainWindow.webContents.openDevTools();
-    } else {
-        // In production, vite builds to dist/
-        // We are in electron/main.js. 
-        // If we run from root: electron . -> main is electron/main.js
-        // dist is at ./dist
-        // But usually electron-builder packages it differently.
-        // Let's assume standard vite build output.
-        // For dev now, we rely on localhost.
+    } else if (process.env.NODE_ENV === 'development') {
+        // Fluxo do scripts/dev.js: Vite já está rodando na 5173,
+        // mas sem VITE_DEV_SERVER_URL no ambiente.
         mainWindow.loadURL('http://localhost:5173');
+    } else {
+        // Produção: carrega o build do Vite empacotado em dist/.
+        mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
     }
 };
 
@@ -77,67 +87,54 @@ app.on('activate', () => {
 });
 
 // IPC Handlers
+//
+// Superfície mínima: IA + backup do acervo. Os handlers de
+// diálogo/fs existiam mas nunca eram chamados pelo renderer (o
+// import usa a File API do browser e as settings de IA têm seu
+// próprio acesso a userData dentro do ai-bridge) — removeram-se
+// para reduzir superfície de ataque.
 
-ipcMain.handle('dialog:openFile', async () => {
-    const { canceled, filePaths } = await dialog.showOpenDialog({
-        properties: ['openFile'],
-        filters: [{ name: 'JSON', extensions: ['json'] }]
-    });
-    if (canceled) {
-        return null;
-    } else {
-        return filePaths[0];
+// ═══════════════════════════════════════════════════════════════
+// Backup do acervo — único ponto de escrita em disco vindo do
+// renderer. O renderer envia apenas os bytes do zip; o caminho e
+// o nome do arquivo são definidos aqui, dentro de userData.
+// ═══════════════════════════════════════════════════════════════
+function getBackupsDir() {
+    return path.join(app.getPath('userData'), 'backups');
+}
+
+ipcMain.handle('backup:save', async (event, zipBytes) => {
+    if (!(zipBytes instanceof Uint8Array) || zipBytes.length === 0) {
+        throw new Error('backup:save requer um Uint8Array não vazio');
     }
+    const backupsDir = getBackupsDir();
+    await fs.mkdir(backupsDir, { recursive: true });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filePath = path.join(backupsDir, `umbra-backup-${timestamp}.zip`);
+    await fs.writeFile(filePath, Buffer.from(zipBytes));
+    console.log(`[Backup] Salvo em ${filePath}`);
+    return filePath;
 });
 
-ipcMain.handle('fs:readFile', async (event, filePath) => {
-    try {
-        const content = await fs.readFile(filePath, 'utf-8');
-        return content;
-    } catch (err) {
-        console.error('Error reading file:', err);
-        throw err;
-    }
-});
-
-ipcMain.handle('fs:writeFile', async (event, filePath, content) => {
-    try {
-        await fs.writeFile(filePath, content, 'utf-8');
-        return true;
-    } catch (err) {
-        console.error('Error writing file:', err);
-        throw err;
-    }
-});
-
-ipcMain.handle('fs:readUserData', async (event, fileName) => {
-    const userDataPath = app.getPath('userData');
-    const filePath = path.join(userDataPath, fileName);
-    try {
-        const content = await fs.readFile(filePath, 'utf-8');
-        return JSON.parse(content);
-    } catch (error) {
-        if (error.code === 'ENOENT') return null; // File doesn't exist
-        throw error;
-    }
-});
-
-ipcMain.handle('fs:writeUserData', async (event, fileName, data) => {
-    const userDataPath = app.getPath('userData');
-    const filePath = path.join(userDataPath, fileName);
-    await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+ipcMain.handle('backup:openFolder', async () => {
+    const backupsDir = getBackupsDir();
+    await fs.mkdir(backupsDir, { recursive: true });
+    await shell.openPath(backupsDir);
     return true;
 });
 
 // ═══════════════════════════════════════════════════════════════
 // AI Bridge — Generative UI via OpenRouter / Custom Provider
 // ═══════════════════════════════════════════════════════════════
-import { streamChat, abortStream, loadAISettings, saveAISettings, fetchAvailableModels } from './ai-bridge.js';
-
 // Load settings on startup
 app.whenReady().then(() => {
     loadAISettings().then(settings => {
-        if (settings.apiKey) console.log('[AI] API key loaded from userData');
+        const configured = Object.entries(settings.providers || {})
+            .filter(([id, p]) => (id === 'ollama' ? !!p.baseUrl : !!p.apiKey))
+            .map(([id]) => id);
+        if (configured.length > 0) {
+            console.log(`[AI] Providers configurados: ${configured.join(', ')}`);
+        }
     });
 });
 
@@ -157,23 +154,38 @@ ipcMain.handle('ai:abort', async () => {
     return { success: true };
 });
 
-// Save AI settings securely in userData
+// Save AI settings securely in userData (legacy single-key adapter)
 ipcMain.handle('ai:saveSettings', async (event, settings) => {
     await saveAISettings(settings);
     return { success: true };
 });
 
-// Get AI settings (returns full settings so renderer knows the baseURL)
+// Get AI settings (compat view {hasKey, baseURL} + providers/defaultModel, sem chaves)
 ipcMain.handle('ai:getSettings', async () => {
-    const settings = await loadAISettings();
-    // Don't send the full API key to renderer for security, just send a boolean
-    return { 
-        hasKey: !!settings.apiKey,
-        baseURL: settings.baseURL 
-    };
+    return await getSettingsView();
 });
 
-// Fetch models dynamically
+// Fetch models dynamically (legacy: catálogo público do OpenRouter)
 ipcMain.handle('ai:getModels', async () => {
     return await fetchAvailableModels();
+});
+
+// ── Multi-provider (v2) ──
+ipcMain.handle('ai:getProviders', async () => {
+    return providerPublicView(await loadAISettings());
+});
+
+ipcMain.handle('ai:saveProviderSettings', async (event, patch) => {
+    await saveProviderSettings(patch);
+    return providerPublicView(await loadAISettings());
+});
+
+ipcMain.handle('ai:setDefaultModel', async (event, spec) => {
+    await setDefaultModel(spec);
+    return { success: true };
+});
+
+// Catálogo multi-provider (models.dev + Ollama local), com cache 24h
+ipcMain.handle('ai:getCatalog', async () => {
+    return await getCatalog(await loadAISettings());
 });

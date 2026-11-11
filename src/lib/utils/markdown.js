@@ -1,6 +1,6 @@
 import { marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
-import hljs from 'highlight.js';
+import hljs from './hljs.js';
 import markedKatex from 'marked-katex-extension';
 
 /**

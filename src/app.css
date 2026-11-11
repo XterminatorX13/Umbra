@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
+@import "tw-animate-css";
 
 /* Global Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
@@ -681,4 +682,67 @@ a {
   gap: 12px;
   width: 100%;
   max-width: 320px;
+}
+
+/* ===========================================================
+   SHADCN-SVELTE TOKENS — mapeados no Dark Aurora
+   Alimenta os componentes shadcn (bg-background, text-foreground,
+   border-input, ring-ring...) com o design system nativo do Umbra.
+   Nota: rounded-sm/md/lg/xl passa a seguir a escala de radius
+   do Umbra (6/10/12/16px) em vez da escala default do Tailwind.
+=========================================================== */
+
+:root {
+  --background: var(--bg-deep);
+  --foreground: var(--color-text-primary);
+
+  --card: var(--bg-panel);
+  --card-foreground: var(--color-text-primary);
+
+  --popover: var(--layer-2);
+  --popover-foreground: var(--color-text-primary);
+
+  --primary: var(--highlight);
+  --primary-foreground: var(--bg-main);
+
+  --secondary: var(--layer-2);
+  --secondary-foreground: var(--color-text-primary);
+
+  --muted: var(--layer-1);
+  --muted-foreground: var(--color-text-secondary);
+
+  --accent: var(--layer-3);
+  --accent-foreground: var(--color-text-primary);
+
+  --destructive: var(--color-error);
+
+  --input: var(--border-light);
+  --ring: var(--accent-2);
+
+  /* --border e --radius já definidos acima e reaproveitados */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: var(--radius-small);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius-large);
 }

@@ -1,6 +1,6 @@
 <script>
   import { createEventDispatcher } from "svelte";
-  import hljs from "highlight.js";
+  import hljs from "$lib/utils/hljs.js";
 
   /** @type {string} */
   export let code = "";

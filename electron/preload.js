@@ -1,19 +1,22 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-    // ── File System ──
-    openFile: () => ipcRenderer.invoke('dialog:openFile'),
-    readFile: (filePath) => ipcRenderer.invoke('fs:readFile', filePath),
-    writeFile: (filePath, content) => ipcRenderer.invoke('fs:writeFile', filePath, content),
-    readUserData: (fileName) => ipcRenderer.invoke('fs:readUserData', fileName),
-    writeUserData: (fileName, data) => ipcRenderer.invoke('fs:writeUserData', fileName, data),
-
     // ── AI Bridge (Generative UI) ──
     streamChat: (params) => ipcRenderer.invoke('ai:stream', params),
     abortChat: () => ipcRenderer.invoke('ai:abort'),
     saveSettings: (settings) => ipcRenderer.invoke('ai:saveSettings', settings),
     getSettings: () => ipcRenderer.invoke('ai:getSettings'),
     getModels: () => ipcRenderer.invoke('ai:getModels'),
+
+    // ── Multi-provider (v2) ──
+    getProviderSettings: () => ipcRenderer.invoke('ai:getProviders'),
+    saveProviderSettings: (patch) => ipcRenderer.invoke('ai:saveProviderSettings', patch),
+    setDefaultModel: (spec) => ipcRenderer.invoke('ai:setDefaultModel', spec),
+    getCatalog: () => ipcRenderer.invoke('ai:getCatalog'),
+
+    // ── Backup do acervo ──
+    saveBackup: (zipBytes) => ipcRenderer.invoke('backup:save', zipBytes),
+    openBackupsFolder: () => ipcRenderer.invoke('backup:openFolder'),
 
     // AI streaming listeners (main → renderer)
     onAiChunk: (callback) => {

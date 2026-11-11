@@ -6,6 +6,7 @@
     import FilterPanel from "$lib/components/filters/FilterPanel.svelte";
     import PlatformBadge from "$lib/components/chat/PlatformBadge.svelte";
     import ProjectModal from "$lib/components/base/ProjectModal.svelte";
+    import SettingsModal from "$lib/components/composite/SettingsModal.svelte";
     import {
         Plus,
         MessageSquare,
@@ -40,6 +41,7 @@
 
     let showingStats = $state(false);
     let searchResults = $state([]);
+    let settingsModalOpen = $state(false);
 
     const conversationsStore = writable([]);
     const metadataStore = writable({});
@@ -397,7 +399,7 @@
             <button class="footer-btn" onclick={() => showingStats = !showingStats}>
                 <BarChart2 size={16} />
             </button>
-            <button class="footer-btn">
+            <button class="footer-btn" onclick={() => settingsModalOpen = true} title="Configurações">
                 <Settings size={16} />
             </button>
         </div>
@@ -428,6 +430,7 @@
 </aside>
 
 <ProjectModal bind:isOpen={projectModalOpen} on:submit={handleProjectSubmit} />
+<SettingsModal bind:isOpen={settingsModalOpen} />
 
 <style>
     /* Claude-inspired Minimalism */

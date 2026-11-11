@@ -11,6 +11,7 @@
     import GlitchButton from "$lib/components/base/GlitchButton.svelte";
     import { normalizeConversation, getConvKey, deduplicateConversations } from "./lib/utils.js";
     import { parseFile } from "./lib/parsers/index.js";
+    import { maybeAutoBackup } from "./lib/backup.js";
     import {
         loadConversations,
         saveConversations,
@@ -287,6 +288,8 @@
 
     onMount(() => {
         window.addEventListener("keydown", handleKeydown);
+        // Backup automático semanal (silencioso; falha só loga)
+        maybeAutoBackup();
     });
 
     onDestroy(() => {
