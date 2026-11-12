@@ -13,9 +13,9 @@
     "electron": "electron",
     "build": "vite build",
     "preview": "vite preview",
-    "electron:build": "vite build && bunx electron-builder",
-    "electron:build:win": "vite build && bunx electron-builder --win --x64",
-    "electron:build:portable": "vite build && bunx electron-builder --win portable"
+    "electron:build": "vite build && electron-builder",
+    "electron:build:win": "vite build && electron-builder --win --x64",
+    "electron:build:portable": "vite build && electron-builder --win portable"
   },
   "devDependencies": {
     "@internationalized/date": "^3.12.0",
@@ -26,6 +26,7 @@
     "bits-ui": "^2.20.0",
     "clsx": "^2.1.1",
     "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
     "postcss": "^8.5.25",
     "svelte": "^5.56.8",
     "tailwind-merge": "^3.6.0",
