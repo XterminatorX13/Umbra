@@ -113,8 +113,28 @@ ipcMain.handle('backup:save', async (event, zipBytes) => {
     const filePath = path.join(backupsDir, `umbra-backup-${timestamp}.zip`);
     await fs.writeFile(filePath, Buffer.from(zipBytes));
     console.log(`[Backup] Salvo em ${filePath}`);
+    await pruneBackups(backupsDir);
     return filePath;
 });
+
+// Retenção: mantém só os MAX_BACKUPS mais recentes (o nome já ordena
+// cronologicamente pelo timestamp ISO). Falha de retenção nunca
+// bloqueia o save do backup atual.
+const MAX_BACKUPS = 10;
+async function pruneBackups(backupsDir) {
+    try {
+        const entries = await fs.readdir(backupsDir);
+        const backups = entries
+            .filter((f) => f.startsWith('umbra-backup-') && f.endsWith('.zip'))
+            .sort()
+            .reverse();
+        for (const old of backups.slice(MAX_BACKUPS)) {
+            await fs.rm(path.join(backupsDir, old), { force: true });
+        }
+    } catch (e) {
+        console.warn('[Backup] Retenção falhou (mantendo backups antigos):', e.message);
+    }
+}
 
 ipcMain.handle('backup:openFolder', async () => {
     const backupsDir = getBackupsDir();

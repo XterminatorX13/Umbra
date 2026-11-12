@@ -1,7 +1,7 @@
 <script>
     import { createEventDispatcher } from "svelte";
     import { X, HardDriveDownload, HardDriveUpload, FolderOpen, RefreshCw, Sparkles, KeyRound, Link2, Cpu } from "lucide-svelte";
-    import { createBackup, restoreBackup, getLastBackupInfo, maybeAutoBackup } from "$lib/backup.js";
+    import { createBackup, restoreBackup, getLastBackupInfo } from "$lib/backup.js";
     import {
         providerSettingsView,
         loadProviderSettings,

@@ -286,14 +286,19 @@
         }
     }
 
+    let autoBackupTimer = null;
+
     onMount(() => {
         window.addEventListener("keydown", handleKeydown);
-        // Backup automático semanal (silencioso; falha só loga)
-        maybeAutoBackup();
+        // Backup automático semanal — adiado: o backup carrega e comprime
+        // o acervo inteiro, então não pode competir com o boot/primeira
+        // renderização. Falha apenas loga (silencioso).
+        autoBackupTimer = setTimeout(() => { maybeAutoBackup(); }, 30_000);
     });
 
     onDestroy(() => {
         window.removeEventListener("keydown", handleKeydown);
+        if (autoBackupTimer) clearTimeout(autoBackupTimer);
     });
 </script>
 
