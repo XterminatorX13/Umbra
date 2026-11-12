@@ -50,6 +50,61 @@ function deepCopy(obj) {
     return JSON.parse(JSON.stringify(obj));
 }
 
+// Campos permitidos por provider no arquivo persistido. Qualquer campo
+// além destes é descartado — nada do renderer entra no disco sem
+// passar pela whitelist. "custom" é legado do v1 e usa baseURL
+// (maiúsculo); os fixos usam baseUrl (minúsculo).
+function pickProviderFields(entry) {
+    const out = {};
+    if (typeof entry.apiKey === 'string' || entry.apiKey === null) out.apiKey = entry.apiKey;
+    if (typeof entry.baseUrl === 'string' && entry.baseUrl.trim()) out.baseUrl = entry.baseUrl.trim();
+    return out;
+}
+
+function pickCustomFields(entry) {
+    const out = {};
+    if (typeof entry.apiKey === 'string' || entry.apiKey === null) out.apiKey = entry.apiKey;
+    if (typeof entry.baseURL === 'string' && entry.baseURL.trim()) out.baseURL = entry.baseURL.trim();
+    return out;
+}
+
+/**
+ * Valida e reduz um patch vindo do renderer aos campos permitidos.
+ * Aceita { providers: { [id]: { apiKey?, baseUrl? } }, custom?: {...}, defaultModel? }.
+ * Campos desconhecidos ou de tipo errado são descartados, não propagados.
+ */
+function sanitizePatch(patch) {
+    if (!patch || typeof patch !== 'object') return {};
+    const clean = {};
+
+    if (patch.providers && typeof patch.providers === 'object') {
+        for (const id of FIXED_PROVIDER_IDS) {
+            const p = patch.providers[id];
+            if (p && typeof p === 'object') {
+                const fields = pickProviderFields(p);
+                if (Object.keys(fields).length > 0) {
+                    clean.providers = { ...clean.providers, [id]: fields };
+                }
+            }
+        }
+        const custom = patch.providers.custom;
+        if (custom && typeof custom === 'object') {
+            const fields = pickCustomFields(custom);
+            if (fields.baseURL) {
+                clean.providers = { ...clean.providers, custom: fields };
+            }
+        }
+    }
+
+    const dm = patch.defaultModel;
+    if (dm && typeof dm === 'object') {
+        if (typeof dm.providerId === 'string' && dm.providerId && typeof dm.modelId === 'string' && dm.modelId) {
+            clean.defaultModel = { providerId: dm.providerId, modelId: dm.modelId };
+        }
+    }
+    return clean;
+}
+
 /** Migra o formato v1 ({apiKey, baseURL}) para v2. */
 function migrateV1(parsed) {
     const v2 = deepCopy(DEFAULTS);
@@ -74,12 +129,14 @@ function normalize(parsed) {
     }
     const merged = deepCopy(DEFAULTS);
     for (const id of FIXED_PROVIDER_IDS) {
-        if (parsed.providers?.[id]) {
-            merged.providers[id] = { ...merged.providers[id], ...parsed.providers[id] };
+        const p = parsed.providers?.[id];
+        if (p && typeof p === 'object') {
+            merged.providers[id] = { ...merged.providers[id], ...pickProviderFields(p) };
         }
     }
-    if (parsed.providers?.custom?.baseURL) {
-        merged.providers.custom = parsed.providers.custom;
+    const parsedCustom = parsed.providers?.custom;
+    if (parsedCustom && typeof parsedCustom === 'object' && parsedCustom.baseURL) {
+        merged.providers.custom = pickCustomFields(parsedCustom);
     }
     if (parsed.defaultModel?.providerId && parsed.defaultModel?.modelId) {
         merged.defaultModel = parsed.defaultModel;
@@ -107,22 +164,24 @@ export async function loadAISettings() {
 }
 
 /** Merge parcial no shape v2 e persiste. */
-export async function saveProviderSettings(patch) {
+export async function saveProviderSettings(rawPatch) {
     if (!cached) await loadAISettings();
     // Merge profundo: patch traz só um provider — spread raso
-    // apagaria as chaves dos demais
+    // apagaria as chaves dos demais. O patch é sanitizado antes
+    // (whitelist de campos) para não persistir lixo do renderer.
+    const patch = sanitizePatch(rawPatch);
     const merged = deepCopy(cached);
-    if (patch?.providers) {
+    if (patch.providers) {
         for (const id of FIXED_PROVIDER_IDS) {
             if (patch.providers[id]) {
                 merged.providers[id] = { ...merged.providers[id], ...patch.providers[id] };
             }
         }
-        if (patch.providers.custom?.baseURL) {
+        if (patch.providers.custom) {
             merged.providers.custom = patch.providers.custom;
         }
     }
-    if (patch?.defaultModel?.providerId && patch.defaultModel.modelId) {
+    if (patch.defaultModel) {
         merged.defaultModel = patch.defaultModel;
     }
     cached = normalize(merged);
@@ -136,12 +195,15 @@ export async function saveProviderSettings(patch) {
  */
 export async function saveLegacySettings({ apiKey, baseURL } = {}) {
     if (!cached) await loadAISettings();
-    if (apiKey !== undefined) {
-        if (baseURL && !baseURL.includes('openrouter')) {
-            cached.providers.custom = { apiKey, baseURL };
+    if (typeof apiKey === 'string' && apiKey.length > 0) {
+        if (typeof baseURL === 'string' && baseURL && !baseURL.includes('openrouter')) {
+            cached.providers.custom = pickCustomFields({ apiKey, baseURL });
         } else {
+            // O form legado sempre manda a baseURL fixa do OpenRouter — não
+            // é um sinal de intenção de remover o provider custom (que pode
+            // ter migrado do v1). O modal de Configurações é quem gereia
+            // custom a partir de agora.
             cached.providers.openrouter.apiKey = apiKey;
-            delete cached.providers.custom;
         }
     }
     await fs.writeFile(getSettingsPath(), JSON.stringify(cached, null, 2), 'utf-8');
